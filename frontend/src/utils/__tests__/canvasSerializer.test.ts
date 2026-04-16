@@ -278,6 +278,16 @@ describe('deserializeApiNode — regular node', () => {
     expect(result.position).toEqual({ x: 50, y: 75 })
   })
 
+  it('defaults regular node zIndex to 5 when z_order is missing', () => {
+    const result = deserializeApiNode(makeApiNode(), emptyMap)
+    expect(result.zIndex).toBe(5)
+  })
+
+  it('applies regular node zIndex from custom_colors.z_order', () => {
+    const result = deserializeApiNode(makeApiNode({ custom_colors: { z_order: 3 } }), emptyMap)
+    expect(result.zIndex).toBe(3)
+  })
+
   it('restores width and height when node was resized', () => {
     const result = deserializeApiNode(makeApiNode({ width: 280, height: 120 }), emptyMap)
     expect(result.width).toBe(280)

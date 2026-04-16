@@ -1,4 +1,4 @@
-import { createElement, useState } from 'react'
+import { Fragment, createElement, useState } from 'react'
 import { RotateCcw, ChevronDown } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ const NODE_TYPE_GROUPS: { label: string; types: NodeType[] }[] = [
 ]
 
 const CHECK_METHODS: CheckMethod[] = ['none', 'ping', 'http', 'https', 'tcp', 'ssh', 'prometheus', 'health']
+const NODE_Z_ORDER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+const DEFAULT_NODE_Z_ORDER = 5
 
 const DEFAULT_DATA: Partial<NodeData> = {
   type: 'server',
@@ -50,6 +52,12 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const [labelError, setLabelError] = useState(false)
 
+  const hasVisualCustomColors = !!(
+    form.custom_colors?.border ||
+    form.custom_colors?.background ||
+    form.custom_colors?.icon
+  )
+
   const set = (key: keyof NodeData, value: unknown) =>
     setForm((f) => ({ ...f, [key]: value }))
 
@@ -60,7 +68,15 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
       return
     }
     setLabelError(false)
-    onSubmit(form)
+    const rawZ = Number(form.custom_colors?.z_order ?? DEFAULT_NODE_Z_ORDER)
+    const zOrder = Number.isFinite(rawZ) ? rawZ : DEFAULT_NODE_Z_ORDER
+    onSubmit({
+      ...form,
+      custom_colors: {
+        ...(form.custom_colors ?? {}),
+        z_order: zOrder,
+      },
+    })
     onClose()
   }
 
@@ -82,9 +98,9 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                 </SelectTrigger>
                 <SelectContent className="bg-[#21262d] border-[#30363d]">
                   {NODE_TYPE_GROUPS.map((group, i) => (
-                    <>
+                    <Fragment key={group.label}>
                       {i > 0 && <SelectSeparator key={`sep-${group.label}`} className="bg-[#30363d]" />}
-                      <SelectGroup key={group.label}>
+                      <SelectGroup>
                         <SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 px-2 py-1">
                           {group.label}
                         </SelectLabel>
@@ -94,7 +110,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                           </SelectItem>
                         ))}
                       </SelectGroup>
-                    </>
+                    </Fragment>
                   ))}
                 </SelectContent>
               </Select>
@@ -292,10 +308,10 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
             <div className="flex flex-col gap-2 col-span-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Appearance</Label>
-                {form.custom_colors && (
+                {hasVisualCustomColors && (
                   <button
                     type="button"
-                    onClick={() => set('custom_colors', undefined)}
+                    onClick={() => set('custom_colors', { z_order: Number(form.custom_colors?.z_order ?? DEFAULT_NODE_Z_ORDER) })}
                     className="flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                   >
                     <RotateCcw size={10} /> Reset to defaults
@@ -327,7 +343,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                   )
                 })}
               </div>
-              {!form.custom_colors && (
+              {!hasVisualCustomColors && (
                 <p className="text-[10px] text-muted-foreground/50">Using default colors for {NODE_TYPE_LABELS[form.type ?? 'generic']}. Click a swatch to customize.</p>
               )}
             </div>
@@ -348,6 +364,28 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                     <SelectItem value="2" className="text-sm">2 — left / right</SelectItem>
                     <SelectItem value="3" className="text-sm">3 — left / center / right</SelectItem>
                     <SelectItem value="4" className="text-sm">4 — evenly spaced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Layer order for regular nodes */}
+            {form.type !== 'groupRect' && (
+              <div className="flex flex-col gap-1.5 col-span-2">
+                <Label className="text-xs text-muted-foreground">Layer (Z-Order, 1 = Back, 9 = Front)</Label>
+                <Select
+                  value={String(form.custom_colors?.z_order ?? DEFAULT_NODE_Z_ORDER)}
+                  onValueChange={(v) => set('custom_colors', { ...form.custom_colors, z_order: Number(v ?? DEFAULT_NODE_Z_ORDER) })}
+                >
+                  <SelectTrigger className="bg-[#21262d] border-[#30363d] text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#21262d] border-[#30363d]">
+                    {NODE_Z_ORDER_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)} className="text-sm font-mono">
+                        {n}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

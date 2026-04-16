@@ -151,6 +151,12 @@ export default function App() {
     snapshotHistory()
     const id = generateUUID()
     const isProxmox = data.type === 'proxmox'
+    const nodeType = data.type ?? 'generic'
+    const rawZ = Number(data.custom_colors?.z_order ?? 5)
+    const nodeZOrder = Number.isFinite(rawZ) ? rawZ : 5
+    const mergedCustomColors = nodeType === 'groupRect'
+      ? data.custom_colors
+      : { ...(data.custom_colors ?? {}), z_order: nodeZOrder }
     const parentNode = data.parent_id ? nodes.find((n) => n.id === data.parent_id) : null
     // Children position is relative to parent; place near top-left with padding
     const position = parentNode
@@ -161,7 +167,8 @@ export default function App() {
       id,
       type: data.type ?? 'generic',
       position,
-      data: { status: 'unknown', services: [], ...data } as NodeData,
+      data: { status: 'unknown', services: [], ...data, custom_colors: mergedCustomColors } as NodeData,
+      ...(nodeType !== 'groupRect' ? { zIndex: nodeZOrder } : {}),
       ...(data.parent_id ? { parentId: data.parent_id, extent: 'parent' as const } : {}),
       ...(isProxmox ? { width: 300, height: 200 } : {}),
     }
@@ -240,14 +247,33 @@ export default function App() {
     if (!editNodeId) return
     snapshotHistory()
     const existingNode = nodes.find((n) => n.id === editNodeId)
-    updateNode(editNodeId, data)
+    const nodeType = data.type ?? existingNode?.data.type ?? 'generic'
+    const rawIncomingZ = Number(data.custom_colors?.z_order)
+    const rawExistingZ = Number(existingNode?.data.custom_colors?.z_order)
+    const nodeZOrder = Number.isFinite(rawIncomingZ)
+      ? rawIncomingZ
+      : Number.isFinite(rawExistingZ)
+      ? rawExistingZ
+      : 5
+    const nextCustomColors = nodeType === 'groupRect'
+      ? data.custom_colors
+      : {
+          ...(existingNode?.data.custom_colors ?? {}),
+          ...(data.custom_colors ?? {}),
+          z_order: nodeZOrder,
+        }
+
+    updateNode(editNodeId, { ...data, custom_colors: nextCustomColors })
+    if (nodeType !== 'groupRect') {
+      setNodeZIndex(editNodeId, nodeZOrder)
+    }
     // If proxmox container_mode changed, apply structural changes (children parentId, node dimensions)
     if (data.type === 'proxmox' && typeof data.container_mode === 'boolean') {
       setProxmoxContainerMode(editNodeId, data.container_mode)
     }
     // Sync virtual edge when parent_id changes on an LXC/VM node
-    const nodeType = data.type ?? existingNode?.data.type
-    if ((nodeType === 'lxc' || nodeType === 'vm') && 'parent_id' in data) {
+    const effectiveType = data.type ?? existingNode?.data.type
+    if ((effectiveType === 'lxc' || effectiveType === 'vm') && 'parent_id' in data) {
       const oldParentId = existingNode?.data.parent_id ?? null
       const newParentId = data.parent_id ?? null
       if (oldParentId !== newParentId) {
@@ -271,7 +297,7 @@ export default function App() {
       }
     }
     setEditNodeId(null)
-  }, [editNodeId, updateNode, setProxmoxContainerMode, nodes, edges, deleteEdge, onConnect, snapshotHistory])
+  }, [editNodeId, updateNode, setNodeZIndex, setProxmoxContainerMode, nodes, edges, deleteEdge, onConnect, snapshotHistory])
 
   const handleAutoLayout = useCallback(() => {
     const laid = applyDagreLayout(nodes, edges)

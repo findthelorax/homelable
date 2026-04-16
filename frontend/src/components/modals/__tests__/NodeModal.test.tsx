@@ -33,7 +33,7 @@ function renderModal(props: Partial<Parameters<typeof NodeModal>[0]> = {}) {
   return { onClose, onSubmit }
 }
 
-/** Get <select> elements in document order: [0]=Type, [1]=CheckMethod, [2]=BottomHandles */
+/** Get <select> elements in document order: [0]=Type, [1]=CheckMethod, [2]=BottomHandles, [3]=ZOrder */
 function selects() { return screen.getAllByRole('combobox') as HTMLSelectElement[] }
 
 const BASE: Partial<NodeData> = {
@@ -325,5 +325,17 @@ describe('NodeModal', () => {
     fireEvent.change(selects()[2], { target: { value: '4' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect((onSubmit.mock.calls[0][0] as Partial<NodeData>).bottom_handles).toBe(4)
+  })
+
+  it('defaults node z-order to 5', () => {
+    renderModal({ initial: BASE })
+    expect(selects()[3].value).toBe('5')
+  })
+
+  it('submits updated node z-order', () => {
+    const { onSubmit } = renderModal({ initial: BASE })
+    fireEvent.change(selects()[3], { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect((onSubmit.mock.calls[0][0] as Partial<NodeData>).custom_colors?.z_order).toBe(2)
   })
 })

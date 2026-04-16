@@ -12,8 +12,10 @@ interface DetailPanelProps {
   onEdit: (id: string) => void
 }
 
-type SvcForm = { port: string; protocol: 'tcp' | 'udp'; service_name: string }
-const EMPTY_FORM: SvcForm = { port: '', protocol: 'tcp', service_name: '' }
+const sanitizePortValue = (value: string) => value.replace(/\D/g, '')
+
+type SvcForm = { port: string; protocol: 'tcp' | 'udp'; service_name: string; path: string }
+const EMPTY_FORM: SvcForm = { port: '', protocol: 'tcp', service_name: '', path: '' }
 
 type PropForm = { key: string; value: string; icon: string | null; visible: boolean }
 const EMPTY_PROP: PropForm = { key: '', value: '', icon: null, visible: true }
@@ -93,10 +95,20 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
   }
 
   const handleAddService = () => {
-    const port = parseInt(newSvc.port, 10)
-    if (!newSvc.service_name.trim() || isNaN(port) || port < 1 || port > 65535) return
+    const hasPort = newSvc.port.trim() !== ''
+    const parsedPort = parseInt(newSvc.port, 10)
+    const path = newSvc.path.trim()
+    if (!newSvc.service_name.trim()) return
+    if (!hasPort && !path) return
+    if (hasPort && (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535)) return
+    const port = hasPort ? parsedPort : undefined
     snapshotHistory()
-    const svc: ServiceInfo = { port, protocol: newSvc.protocol, service_name: newSvc.service_name.trim() }
+    const svc: ServiceInfo = {
+      protocol: newSvc.protocol,
+      service_name: newSvc.service_name.trim(),
+      ...(hasPort ? { port } : {}),
+      ...(path ? { path } : {}),
+    }
     updateNode(node.id, { services: [...services, svc] })
     setNewSvc(EMPTY_FORM)
     setAddingForNode(null)
@@ -112,18 +124,41 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
   const handleStartEdit = (index: number) => {
     const svc = services[index]
     if (!svc) return
-    setEditSvc({ port: String(svc.port), protocol: svc.protocol, service_name: svc.service_name })
+    setEditSvc({
+      port: svc.port !== undefined ? String(svc.port) : '',
+      protocol: svc.protocol,
+      service_name: svc.service_name,
+      path: svc.path ?? '',
+    })
     setEditingFor({ nodeId: node.id, index })
     setAddingForNode(null)
   }
 
   const handleSaveEdit = () => {
     if (editingIndex === null) return
-    const port = parseInt(editSvc.port, 10)
-    if (!editSvc.service_name.trim() || isNaN(port) || port < 1 || port > 65535) return
+    const hasPort = editSvc.port.trim() !== ''
+    const parsedPort = parseInt(editSvc.port, 10)
+    const path = editSvc.path.trim()
+    if (!editSvc.service_name.trim()) return
+    if (!hasPort && !path) return
+    if (hasPort && (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535)) return
+    const port = hasPort ? parsedPort : undefined
     snapshotHistory()
     const updated = services.map((svc, i) =>
-      i === editingIndex ? { ...svc, port, protocol: editSvc.protocol, service_name: editSvc.service_name.trim() } : svc
+      i === editingIndex
+        ? (() => {
+            const edited: ServiceInfo = {
+              ...svc,
+              protocol: editSvc.protocol,
+              service_name: editSvc.service_name.trim(),
+            }
+            if (hasPort && port !== undefined) edited.port = port
+            else delete edited.port
+            if (path) edited.path = path
+            else delete edited.path
+            return edited
+          })()
+        : svc
     )
     updateNode(node.id, { services: updated })
     setEditingFor(null)
@@ -202,7 +237,14 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
             </a>
           </div>
         )}
-        {data.ip && <DetailRow label="IP Address" value={data.ip} mono />}
+        {data.ip && (
+          <div className="flex justify-between gap-2 items-baseline">
+            <span className="text-muted-foreground text-xs shrink-0">IP Address</span>
+            <a href={`http://${data.ip}`} target="_blank" rel="noopener noreferrer" className="text-xs font-mono text-[#00d4ff] hover:underline truncate flex items-center gap-1" title={data.ip}>
+              {data.ip}<ExternalLink size={10} className="shrink-0" />
+            </a>
+          </div>
+        )}
         {data.mac && <DetailRow label="MAC" value={data.mac} mono />}
         {data.os && <DetailRow label="OS" value={data.os} />}
         {data.check_method && <DetailRow label="Check" value={data.check_method} mono />}
@@ -272,7 +314,7 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
               editingIndex === i ? (
                 <ServiceForm key={`edit-${i}`} form={editSvc} onChange={setEditSvc} onConfirm={handleSaveEdit} onCancel={() => setEditingFor(null)} confirmLabel="Save" autoFocus />
               ) : (
-                <ServiceBadge key={`${svc.port}-${svc.protocol}-${i}`} svc={svc} host={host} onEdit={() => handleStartEdit(i)} onRemove={() => handleRemoveService(i)} />
+                <ServiceBadge key={`${svc.service_name}-${svc.port ?? 'none'}-${svc.path ?? 'none'}-${i}`} svc={svc} host={host} onEdit={() => handleStartEdit(i)} onRemove={() => handleRemoveService(i)} />
               )
             )}
           </div>
@@ -472,8 +514,8 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
 }
 
 function ServiceForm({ form, onChange, onConfirm, onCancel, confirmLabel, autoFocus }: {
-  form: { port: string; protocol: 'tcp' | 'udp'; service_name: string }
-  onChange: (f: { port: string; protocol: 'tcp' | 'udp'; service_name: string }) => void
+  form: SvcForm
+  onChange: (f: SvcForm) => void
   onConfirm: () => void
   onCancel: () => void
   confirmLabel: string
@@ -481,14 +523,21 @@ function ServiceForm({ form, onChange, onConfirm, onCancel, confirmLabel, autoFo
 }) {
   return (
     <div className="flex flex-col gap-1.5 mb-1 p-2 rounded-md bg-[#0d1117] border border-[#30363d]">
-      <Input value={form.service_name} onChange={(e) => onChange({ ...form, service_name: e.target.value })} placeholder="Service name" className="bg-[#21262d] border-[#30363d] text-xs h-7" autoFocus={autoFocus} onKeyDown={(e) => e.key === 'Enter' && onConfirm()} />
+      <Input value={form.service_name} onChange={(e) => onChange({ ...form, service_name: e.target.value })} placeholder="Service" className="bg-[#21262d] border-[#30363d] text-xs h-7" autoFocus={autoFocus} onKeyDown={(e) => e.key === 'Enter' && onConfirm()} />
       <div className="flex gap-1.5">
-        <Input type="number" value={form.port} onChange={(e) => onChange({ ...form, port: e.target.value })} placeholder="Port" min={1} max={65535} className="bg-[#21262d] border-[#30363d] font-mono text-xs h-7 w-20 shrink-0" onKeyDown={(e) => e.key === 'Enter' && onConfirm()} />
+        <Input type="text" inputMode="numeric" pattern="[0-9]*" value={form.port} onChange={(e) => onChange({ ...form, port: sanitizePortValue(e.target.value) })} placeholder="Port" className="bg-[#21262d] border-[#30363d] font-mono text-xs h-7 w-28 shrink-0" onKeyDown={(e) => e.key === 'Enter' && onConfirm()} />
         <select value={form.protocol} onChange={(e) => onChange({ ...form, protocol: e.target.value as 'tcp' | 'udp' })} className="flex-1 bg-[#21262d] border border-[#30363d] rounded-md text-xs h-7 px-1.5 text-foreground">
           <option value="tcp">tcp</option>
           <option value="udp">udp</option>
         </select>
       </div>
+      <Input
+        value={form.path}
+        onChange={(e) => onChange({ ...form, path: e.target.value })}
+        placeholder="Path (e.g. /home)"
+        className="bg-[#21262d] border-[#30363d] font-mono text-xs h-7"
+        onKeyDown={(e) => e.key === 'Enter' && onConfirm()}
+      />
       <div className="flex gap-1.5">
         <Button size="sm" className="flex-1 h-6 text-[10px] bg-[#00d4ff] text-[#0d1117] hover:bg-[#00d4ff]/90" onClick={onConfirm}>{confirmLabel}</Button>
         <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={onCancel}>Cancel</Button>
@@ -611,6 +660,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 function ServiceBadge({ svc, host, onEdit, onRemove }: { svc: ServiceInfo; host?: string; onEdit: () => void; onRemove: () => void }) {
   const url = getServiceUrl(svc, host)
   const color = CATEGORY_COLORS[svc.category ?? ''] ?? '#8b949e'
+  const endpointLabel = [
+    svc.port !== undefined ? `${svc.port}/${svc.protocol}` : svc.protocol,
+    svc.path,
+  ].filter(Boolean).join(' ')
   const inner = (
     <div className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border text-xs transition-colors" style={{ background: '#21262d', borderColor: '#30363d', cursor: url ? 'pointer' : 'default' }}>
       <div className="flex items-center gap-1.5 min-w-0">
@@ -618,7 +671,7 @@ function ServiceBadge({ svc, host, onEdit, onRemove }: { svc: ServiceInfo; host?
         <span className="font-medium truncate" style={{ color }}>{svc.service_name}</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="font-mono text-[#8b949e]">{svc.port}/{svc.protocol}</span>
+        <span className="font-mono text-[#8b949e]">{endpointLabel}</span>
         {url && <ExternalLink size={10} className="text-muted-foreground" />}
         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit() }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#00d4ff] ml-0.5" title="Edit service"><Pencil size={10} /></button>
         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove() }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#f85149] ml-0.5" title="Remove service"><X size={10} /></button>

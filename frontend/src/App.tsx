@@ -5,7 +5,7 @@ import { applyDagreLayout } from '@/utils/layout'
 import { serializeNode, serializeEdge, deserializeApiNode, deserializeApiEdge, type ApiNode, type ApiEdge } from '@/utils/canvasSerializer'
 import { generateUUID } from '@/utils/uuid'
 import { generateMarkdownTable } from '@/utils/exportMarkdown'
-import { exportToPng } from '@/utils/export'
+import { exportToPng, type ExportQuality } from '@/utils/export'
 import { exportCanvasToYaml, downloadYaml } from '@/utils/exportYaml'
 import { parseYamlToCanvas } from '@/utils/importYaml'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -305,14 +305,14 @@ export default function App() {
     }
   }, [nodes, edges, snapshotHistory, loadCanvas, markUnsaved])
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (quality: ExportQuality) => {
     const el = canvasRef.current?.querySelector<HTMLElement>('.react-flow')
     if (!el) { toast.error('Canvas not ready'); return }
     try {
-      await exportToPng(el)
+      await exportToPng(el, { quality })
       toast.success('Exported as PNG')
-    } catch {
-      toast.error('Export failed')
+    } catch (err) {
+      toast.error(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }, [])
 

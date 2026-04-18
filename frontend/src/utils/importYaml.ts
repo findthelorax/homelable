@@ -61,6 +61,7 @@ export function parseYamlToCanvas(
       type: yn.nodeType,
       status: 'unknown',
       services: [],
+      ...(typeof yn.containerMode === 'boolean' ? { container_mode: yn.containerMode } : {}),
       ...(yn.hostname ? { hostname: yn.hostname } : {}),
       ...(yn.ipAddress ? { ip: yn.ipAddress } : {}),
       ...(yn.checkMethod ? { check_method: yn.checkMethod } : {}),
@@ -103,16 +104,19 @@ export function parseYamlToCanvas(
     if (edgePairs.has(key) || edgePairs.has(reverseKey)) return
     edgePairs.add(key)
     const edgeType = conn.linkType ?? 'ethernet'
+    const resolvedSourceHandle = conn.linkSourceHandle ?? sourceHandle
+    const resolvedTargetHandle = conn.linkTargetHandle ?? targetHandle
     newEdges.push({
       id: generateUUID(),
       source: sourceId,
       target: targetId,
-      sourceHandle,
-      targetHandle,
+      sourceHandle: resolvedSourceHandle,
+      targetHandle: resolvedTargetHandle,
       type: edgeType,
       data: {
         type: edgeType,
         ...(conn.linkLabel ? { label: conn.linkLabel } : {}),
+        ...(conn.linkColor ? { custom_color: conn.linkColor } : {}),
       },
     })
   }

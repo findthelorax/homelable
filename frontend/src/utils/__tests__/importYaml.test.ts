@@ -41,6 +41,7 @@ describe('parseYamlToCanvas', () => {
     const yaml = `
 - nodeType: proxmox
   label: "PVE1"
+  containerMode: true
   hostname: "pve1.local"
   ipAddress: "192.168.1.10"
   checkMethod: ping
@@ -56,6 +57,7 @@ describe('parseYamlToCanvas', () => {
     const d = nodes[0].data
     expect(d.hostname).toBe('pve1.local')
     expect(d.ip).toBe('192.168.1.10')
+    expect(d.container_mode).toBe(true)
     expect(d.check_method).toBe('ping')
     expect(d.check_target).toBe('192.168.1.10')
     expect(d.notes).toBe('main host')
@@ -87,6 +89,40 @@ describe('parseYamlToCanvas', () => {
     expect(edges).toHaveLength(1)
     expect(edges[0].sourceHandle).toBe('bottom')
     expect(edges[0].targetHandle).toBe('top-t')
+  })
+
+  it('respects linkSourceHandle/linkTargetHandle from YAML links', () => {
+    const yaml = `
+- nodeType: camera
+  label: "Front Doorbell Camera"
+  links:
+    - label: "TP-Link TL-SG1005 POE"
+      linkType: ethernet
+      linkSourceHandle: top
+      linkTargetHandle: bottom-4
+- nodeType: switch
+  label: "TP-Link TL-SG1005 POE"
+`
+    const { edges } = parseYamlToCanvas(yaml, empty, emptyEdges)
+    expect(edges).toHaveLength(1)
+    expect(edges[0].sourceHandle).toBe('top')
+    expect(edges[0].targetHandle).toBe('bottom-4')
+  })
+
+  it('imports linkColor into edge custom_color', () => {
+    const yaml = `
+- nodeType: camera
+  label: "Amcrest Camera Front"
+  links:
+    - label: "TP-Link TL-SG1005 POE"
+      linkType: ethernet
+      linkColor: '#0080ff'
+- nodeType: switch
+  label: "TP-Link TL-SG1005 POE"
+`
+    const { edges } = parseYamlToCanvas(yaml, empty, emptyEdges)
+    expect(edges).toHaveLength(1)
+    expect(edges[0].data?.custom_color).toBe('#0080ff')
   })
 
   it('cluster edges have cluster-right→cluster-left handles', () => {

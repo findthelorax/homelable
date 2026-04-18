@@ -68,6 +68,26 @@ describe('exportCanvasToYaml', () => {
     expect(childEntry.parent).toEqual({ label: 'Proxmox1', linkType: 'virtual', linkLabel: '' })
   })
 
+  it('serializes parent edge color and handles when present', () => {
+    const parent = makeNode({ label: 'Proxmox1', type: 'proxmox' }, 'pve1')
+    const child = makeNode({ label: 'VM1', type: 'vm' }, 'vm1', 'pve1')
+    const edge: Edge<EdgeData> = {
+      ...makeEdge('e1', 'pve1', 'vm1', { type: 'virtual', custom_color: '#ffaa33' }),
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+    }
+    const result = yaml.load(exportCanvasToYaml([parent, child], [edge])) as Record<string, unknown>[]
+    const childEntry = result.find((e) => e.label === 'VM1')!
+    expect(childEntry.parent).toEqual({
+      label: 'Proxmox1',
+      linkType: 'virtual',
+      linkLabel: '',
+      linkColor: '#ffaa33',
+      linkSourceHandle: 'bottom',
+      linkTargetHandle: 'top',
+    })
+  })
+
   it('serializes cluster-type edge as clusterR on source node', () => {
     const nodeA = makeNode({ label: 'PVE1', type: 'proxmox' }, 'a')
     const nodeB = makeNode({ label: 'PVE2', type: 'proxmox' }, 'b')
@@ -100,6 +120,26 @@ describe('exportCanvasToYaml', () => {
     expect(entryA.links).toEqual([{ label: 'Server1', linkType: 'ethernet', linkLabel: 'eth0' }])
     expect(entryB).not.toHaveProperty('links')
     expect(entryA).not.toHaveProperty('clusterR')
+  })
+
+  it('serializes link color and handles for regular links', () => {
+    const nodeA = makeNode({ label: 'Switch', type: 'switch' }, 'sw')
+    const nodeB = makeNode({ label: 'Server1', type: 'server' }, 's1')
+    const edge: Edge<EdgeData> = {
+      ...makeEdge('e1', 'sw', 's1', { type: 'ethernet', label: '1G', custom_color: '#0080ff' }),
+      sourceHandle: 'top',
+      targetHandle: 'bottom-4',
+    }
+    const result = yaml.load(exportCanvasToYaml([nodeA, nodeB], [edge])) as Record<string, unknown>[]
+    const entryA = result.find((e) => e.label === 'Switch')!
+    expect(entryA.links).toEqual([{
+      label: 'Server1',
+      linkType: 'ethernet',
+      linkLabel: '1G',
+      linkColor: '#0080ff',
+      linkSourceHandle: 'top',
+      linkTargetHandle: 'bottom-4',
+    }])
   })
 
   it('serializes multiple outgoing edges as links array', () => {
@@ -171,5 +211,29 @@ describe('exportCanvasToYaml', () => {
     expect(yamlStr).toContain('128')
     expect(yamlStr).toContain('4000')
     expect(yamlStr).toContain('star')
+  })
+
+  it('exports containerMode for all container-capable node types', () => {
+    const nodes = [
+      makeNode({ label: 'PVE1', type: 'proxmox', container_mode: true }, 'p1'),
+      makeNode({ label: 'PVE2', type: 'proxmox', container_mode: false }, 'p2'),
+      makeNode({ label: 'VM1', type: 'vm', container_mode: true }, 'v1'),
+      makeNode({ label: 'LXC1', type: 'lxc', container_mode: false }, 'l1'),
+      makeNode({ label: 'Docker1', type: 'docker', container_mode: true }, 'd1'),
+      makeNode({ label: 'Router', type: 'router' }, 'r1'),
+    ]
+    const result = yaml.load(exportCanvasToYaml(nodes, [])) as Record<string, unknown>[]
+    const pve1 = result.find((e) => e.label === 'PVE1')!
+    const pve2 = result.find((e) => e.label === 'PVE2')!
+    const vm1 = result.find((e) => e.label === 'VM1')!
+    const lxc1 = result.find((e) => e.label === 'LXC1')!
+    const docker1 = result.find((e) => e.label === 'Docker1')!
+    const router = result.find((e) => e.label === 'Router')!
+    expect(pve1.containerMode).toBe(true)
+    expect(pve2.containerMode).toBe(false)
+    expect(vm1.containerMode).toBe(true)
+    expect(lxc1.containerMode).toBe(false)
+    expect(docker1.containerMode).toBe(true)
+    expect(router).not.toHaveProperty('containerMode')
   })
 })

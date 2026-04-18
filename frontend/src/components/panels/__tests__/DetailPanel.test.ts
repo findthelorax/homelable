@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { getServiceUrl } from '@/utils/serviceUrl'
 import type { ServiceInfo } from '@/types'
 
-const svc = (port: number, protocol: 'tcp' | 'udp' = 'tcp', service_name = 'test'): ServiceInfo => ({
-  port,
+const svc = (port: number | undefined, protocol: 'tcp' | 'udp' = 'tcp', service_name = 'test', path?: string): ServiceInfo => ({
+  ...(port !== undefined ? { port } : {}),
   protocol,
   service_name,
+  ...(path ? { path } : {}),
 })
 
 describe('getServiceUrl', () => {
@@ -62,5 +63,25 @@ describe('getServiceUrl', () => {
 
   it('uses host string directly (works with both IP and hostname)', () => {
     expect(getServiceUrl(svc(80), 'myserver.lan')).toBe('http://myserver.lan:80')
+  })
+
+  it('replaces existing host port with service port for IP:port hosts', () => {
+    expect(getServiceUrl(svc(8989, 'tcp', 'Sonarr'), '192.168.1.5:8080')).toBe('http://192.168.1.5:8989')
+  })
+
+  it('replaces existing host port with service port for hostname:port hosts', () => {
+    expect(getServiceUrl(svc(443, 'tcp', 'https'), 'myserver.lan:8080')).toBe('https://myserver.lan:443')
+  })
+
+  it('uses node host when service has path but no port', () => {
+    expect(getServiceUrl(svc(undefined, 'tcp', 'zwave', '/a0d7b954_zwavejs2mqtt'), '10.0.0.1')).toBe('http://10.0.0.1/a0d7b954_zwavejs2mqtt')
+  })
+
+  it('uses node host and existing node port when service has path but no port', () => {
+    expect(getServiceUrl(svc(undefined, 'tcp', 'zwave', '/a0d7b954_zwavejs2mqtt'), '10.0.0.1:8123')).toBe('http://10.0.0.1:8123/a0d7b954_zwavejs2mqtt')
+  })
+
+  it('appends service path after replacing host port with service port', () => {
+    expect(getServiceUrl(svc(3000, 'tcp', 'app', '/dashboard'), '10.0.0.1:8123')).toBe('http://10.0.0.1:3000/dashboard')
   })
 })

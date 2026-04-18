@@ -11,7 +11,7 @@ import { ICON_REGISTRY, ICON_CATEGORIES, NODE_TYPE_DEFAULT_ICONS } from '@/utils
 
 const NODE_TYPE_GROUPS: { label: string; types: NodeType[] }[] = [
   { label: 'Hardware',       types: ['isp', 'router', 'switch', 'server', 'nas', 'ap', 'printer'] },
-  { label: 'Virtualization', types: ['proxmox', 'vm', 'lxc', 'docker'] },
+  { label: 'Virtualization', types: ['proxmox', 'vm', 'lxc', 'docker_host', 'docker_container'] },
   { label: 'IoT',            types: ['iot', 'camera', 'cpl'] },
   { label: 'Generic',        types: ['computer', 'generic', 'groupRect'] },
 ]
@@ -19,6 +19,7 @@ const NODE_TYPE_GROUPS: { label: string; types: NodeType[] }[] = [
 const CHECK_METHODS: CheckMethod[] = ['none', 'ping', 'http', 'https', 'tcp', 'ssh', 'prometheus', 'health']
 const NODE_Z_ORDER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const DEFAULT_NODE_Z_ORDER = 5
+const CONTAINER_MODE_TYPES: NodeType[] = ['proxmox', 'vm', 'lxc', 'docker_host']
 
 const DEFAULT_DATA: Partial<NodeData> = {
   type: 'server',
@@ -28,7 +29,7 @@ const DEFAULT_DATA: Partial<NodeData> = {
   status: 'unknown',
   check_method: 'ping',
   services: [],
-  container_mode: true,
+  container_mode: false,
   custom_colors: undefined,
   custom_icon: undefined,
 }
@@ -39,14 +40,12 @@ interface NodeModalProps {
   onSubmit: (data: Partial<NodeData>) => void
   initial?: Partial<NodeData>
   title?: string
-  proxmoxNodes?: { id: string; label: string }[]
+  parentContainerNodes?: { id: string; label: string }[]
 }
 
-const CHILD_TYPES: NodeType[] = ['vm', 'lxc']
-
 // NodeModal is always mounted with a key that changes on open/edit, so useState
-// initial value is enough — no need for a reset effect.
-export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node', proxmoxNodes = [] }: NodeModalProps) {
+// initial value is enough - no need for a reset effect.
+export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node', parentContainerNodes = [] }: NodeModalProps) {
   const [form, setForm] = useState<Partial<NodeData>>({ ...DEFAULT_DATA, ...initial })
   const [iconSearch, setIconSearch] = useState('')
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
@@ -68,10 +67,13 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
       return
     }
     setLabelError(false)
+    const selectedType = (form.type ?? 'generic') as NodeType
+    const canUseContainerMode = CONTAINER_MODE_TYPES.includes(selectedType)
     const rawZ = Number(form.custom_colors?.z_order ?? DEFAULT_NODE_Z_ORDER)
     const zOrder = Number.isFinite(rawZ) ? rawZ : DEFAULT_NODE_Z_ORDER
     onSubmit({
       ...form,
+      container_mode: canUseContainerMode ? !!form.container_mode : false,
       custom_colors: {
         ...(form.custom_colors ?? {}),
         z_order: zOrder,
@@ -94,7 +96,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
               <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={form.type} onValueChange={(v) => set('type', v as NodeType)}>
                 <SelectTrigger className="bg-[#21262d] border-[#30363d] text-sm h-8 w-full">
-                  <SelectValue />
+                  <SelectValue>{NODE_TYPE_LABELS[(form.type ?? 'server') as NodeType]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-[#21262d] border-[#30363d]">
                   {NODE_TYPE_GROUPS.map((group, i) => (
@@ -150,7 +152,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
               </button>
             </div>
 
-            {/* Inline icon picker — full width, shown below the type+icon row */}
+            {/* Inline icon picker - full width, shown below the type+icon row */}
             {iconPickerOpen && (
               <div className="flex flex-col gap-2 p-2.5 rounded-md bg-[#0d1117] border border-[#30363d] col-span-2">
                 <Input
@@ -260,10 +262,10 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
               />
             </div>
 
-            {/* Parent Proxmox (VM / LXC only) */}
-            {CHILD_TYPES.includes(form.type as NodeType) && proxmoxNodes.length > 0 && (
+            {/* Parent container */}
+            {form.type !== 'groupRect' && form.type !== 'group' && parentContainerNodes.length > 0 && (
               <div className="flex flex-col gap-1.5 col-span-2">
-                <Label className="text-xs text-muted-foreground">Parent Proxmox</Label>
+                <Label className="text-xs text-muted-foreground">Parent Container</Label>
                 <Select
                   value={form.parent_id ?? 'none'}
                   onValueChange={(v) => set('parent_id', v === 'none' ? undefined : v)}
@@ -273,7 +275,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                   </SelectTrigger>
                   <SelectContent className="bg-[#21262d] border-[#30363d]">
                     <SelectItem value="none" className="text-sm">None (standalone)</SelectItem>
-                    {proxmoxNodes.map((n) => (
+                    {parentContainerNodes.map((n) => (
                       <SelectItem key={n.id} value={n.id} className="text-sm">{n.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -281,12 +283,12 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
               </div>
             )}
 
-            {/* Container mode (proxmox only) */}
-            {form.type === 'proxmox' && (
+            {/* Container mode */}
+            {CONTAINER_MODE_TYPES.includes((form.type ?? 'generic') as NodeType) && (
               <div className="flex items-center justify-between col-span-2 py-1">
                 <div className="flex flex-col gap-0.5">
                   <Label className="text-xs text-muted-foreground">Container Mode</Label>
-                  <span className="text-[10px] text-muted-foreground/60">Show VM/LXC nodes nested inside</span>
+                  <span className="text-[10px] text-muted-foreground/60">Allow other nodes to nest inside this node</span>
                 </div>
                 <button
                   type="button"
@@ -360,10 +362,10 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#21262d] border-[#30363d]">
-                    <SelectItem value="1" className="text-sm">1 — center</SelectItem>
-                    <SelectItem value="2" className="text-sm">2 — left / right</SelectItem>
-                    <SelectItem value="3" className="text-sm">3 — left / center / right</SelectItem>
-                    <SelectItem value="4" className="text-sm">4 — evenly spaced</SelectItem>
+                    <SelectItem value="1" className="text-sm">1 - center</SelectItem>
+                    <SelectItem value="2" className="text-sm">2 - left / right</SelectItem>
+                    <SelectItem value="3" className="text-sm">3 - left / center / right</SelectItem>
+                    <SelectItem value="4" className="text-sm">4 - evenly spaced</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

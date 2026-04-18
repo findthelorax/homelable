@@ -13,7 +13,8 @@ export type NodeType =
   | 'printer'
   | 'computer'
   | 'cpl'
-  | 'docker'
+  | 'docker_container'
+  | 'docker_host'
   | 'generic'
   | 'groupRect'
   | 'group'
@@ -36,9 +37,10 @@ export type NodeStatus = 'online' | 'offline' | 'pending' | 'unknown'
 export type CheckMethod = 'ping' | 'http' | 'https' | 'tcp' | 'ssh' | 'prometheus' | 'health' | 'none'
 
 export interface ServiceInfo {
-  port: number
+  port?: number
   protocol: 'tcp' | 'udp'
   service_name: string
+  path?: string
   icon?: string
   category?: string
 }
@@ -126,7 +128,8 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   printer: 'Printer',
   computer: 'Computer',
   cpl: 'CPL / Powerline',
-  docker: 'Docker Host',
+  docker_container: 'Docker Container',
+  docker_host: 'Docker Host',
   generic: 'Generic Device',
   groupRect: 'Group Rectangle',
   group: 'Node Group',

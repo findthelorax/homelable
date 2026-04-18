@@ -20,15 +20,74 @@ const NON_HTTP_PORTS = new Set([
   27017, 27018,   // MongoDB
 ])
 
+function parseHostForServiceUrl(host: string): { hostWithoutPort: string; existingPort?: number } | null {
+  let normalized = host.trim()
+  if (!normalized) return null
+
+  normalized = normalized.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  normalized = normalized.split('/')[0].split('?')[0].split('#')[0]
+  if (!normalized) return null
+
+  if (normalized.startsWith('[')) {
+    const closingBracketIndex = normalized.indexOf(']')
+    if (closingBracketIndex !== -1) {
+      const hostWithoutPort = normalized.slice(0, closingBracketIndex + 1)
+      const rest = normalized.slice(closingBracketIndex + 1)
+      const portMatch = rest.match(/^:(\d+)$/)
+      const existingPort = portMatch ? Number(portMatch[1]) : undefined
+      return existingPort ? { hostWithoutPort, existingPort } : { hostWithoutPort }
+    }
+  }
+
+  const hasSingleColon = normalized.indexOf(':') === normalized.lastIndexOf(':')
+  if (!hasSingleColon) {
+    return { hostWithoutPort: normalized }
+  }
+
+  const portMatch = normalized.match(/:(\d+)$/)
+  if (portMatch) {
+    const hostWithoutPort = normalized.slice(0, normalized.length - portMatch[0].length)
+    const existingPort = Number(portMatch[1])
+    return existingPort ? { hostWithoutPort, existingPort } : { hostWithoutPort }
+  }
+
+  return { hostWithoutPort: normalized }
+}
+
+function normalizeServicePath(path: string | undefined): string {
+  const trimmed = (path ?? '').trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+}
+
+function isValidServicePort(port: number | undefined): port is number {
+  return Number.isInteger(port) && port >= 1 && port <= 65535
+}
+
 export function getServiceUrl(svc: ServiceInfo, host?: string): string | null {
   if (!host) return null
-  if (svc.port === 22) return null        // SSH — no browser
   if (svc.protocol === 'udp') return null // UDP — not HTTP
-  if (NON_HTTP_PORTS.has(svc.port)) return null
+
+  const hasServicePort = isValidServicePort(svc.port)
+  const normalizedPath = normalizeServicePath(svc.path)
+  if (!hasServicePort && !normalizedPath) return null
+
+  if (hasServicePort && svc.port === 22) return null // SSH — no browser
+  if (hasServicePort && NON_HTTP_PORTS.has(svc.port)) return null
 
   const name = svc.service_name.toLowerCase()
   const isHttps =
     name.includes('https') || name.includes('ssl') || name.includes('tls') ||
-    svc.port === 443 || svc.port === 8443
-  return `${isHttps ? 'https' : 'http'}://${host}:${svc.port}`
+    (hasServicePort && (svc.port === 443 || svc.port === 8443))
+
+  const parsedHost = parseHostForServiceUrl(host)
+  if (!parsedHost?.hostWithoutPort) return null
+
+  const authority = hasServicePort
+    ? `${parsedHost.hostWithoutPort}:${svc.port}`
+    : parsedHost.existingPort
+      ? `${parsedHost.hostWithoutPort}:${parsedHost.existingPort}`
+      : parsedHost.hostWithoutPort
+
+  return `${isHttps ? 'https' : 'http'}://${authority}${normalizedPath}`
 }

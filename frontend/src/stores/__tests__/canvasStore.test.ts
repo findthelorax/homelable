@@ -158,6 +158,12 @@ describe('canvasStore', () => {
     expect(hasUnsavedChanges).toBe(false)
   })
 
+  it('loadCanvas assigns default zIndex 5 to regular nodes when missing', () => {
+    useCanvasStore.getState().loadCanvas([makeNode('n1')], [])
+    const loaded = useCanvasStore.getState().nodes.find((n) => n.id === 'n1')
+    expect(loaded?.zIndex).toBe(5)
+  })
+
   it('setSelectedNode sets and clears selection', () => {
     useCanvasStore.getState().setSelectedNode('n1')
     expect(useCanvasStore.getState().selectedNodeId).toBe('n1')

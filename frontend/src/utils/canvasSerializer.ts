@@ -151,11 +151,14 @@ export function deserializeApiNode(
     }
   }
   const parentIsContainer = n.parent_id ? (proxmoxContainerMap.get(n.parent_id) ?? false) : false
+  const rawNodeZ = Number(n.custom_colors?.z_order ?? 5)
+  const nodeZ = Number.isFinite(rawNodeZ) ? rawNodeZ : 5
   return {
     id: n.id,
     type: normalizedType,
     position: { x: n.pos_x, y: n.pos_y },
     data: { ...n, type: normalizedType } as unknown as NodeData,
+    zIndex: nodeZ,
     ...(n.parent_id && parentIsContainer ? { parentId: n.parent_id, extent: 'parent' as const } : {}),
     ...(normalizedType === 'proxmox' && n.container_mode !== false
       ? { width: n.width ?? 300, height: n.height ?? 200 }

@@ -462,9 +462,21 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   toggleHideIp: () => set((s) => ({ hideIp: !s.hideIp })),
 
   loadCanvas: (nodes, edges) => {
+    const normalized = nodes.map((n) => {
+      if (n.type === 'groupRect') {
+        const rawZoneZ = Number(n.data.custom_colors?.z_order ?? 1)
+        const zoneZ = Number.isFinite(rawZoneZ) ? rawZoneZ : 1
+        return n.zIndex == null ? { ...n, zIndex: zoneZ - 10 } : n
+      }
+
+      const rawNodeZ = Number(n.data.custom_colors?.z_order ?? 5)
+      const nodeZ = Number.isFinite(rawNodeZ) ? rawNodeZ : 5
+      return n.zIndex == null ? { ...n, zIndex: nodeZ } : n
+    })
+
     // React Flow requires parents before children in the array
-    const parents = nodes.filter((n) => !n.parentId)
-    const children = nodes.filter((n) => !!n.parentId)
+    const parents = normalized.filter((n) => !n.parentId)
+    const children = normalized.filter((n) => !!n.parentId)
     set({ nodes: [...parents, ...children], edges, hasUnsavedChanges: false, selectedNodeId: null, past: [], future: [], clipboard: [], fitViewPending: true })
   },
 

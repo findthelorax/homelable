@@ -10,6 +10,7 @@ vi.mock('@xyflow/react', () => ({
   Position: { Top: 'top', Bottom: 'bottom' },
   NodeResizer: () => null,
   useUpdateNodeInternals: () => vi.fn(),
+  useViewport: () => ({ zoom: 1 }),
 }))
 
 vi.mock('@/stores/themeStore', () => ({

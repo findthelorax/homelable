@@ -145,8 +145,57 @@ export function applyDagreLayout(
     }
   }
 
+  // Layout child nodes within each parent container
+  const childrenByParent = new Map<string, Node<NodeData>[]>()
+  for (const node of nodes) {
+    if (node.parentId) {
+      if (!childrenByParent.has(node.parentId)) {
+        childrenByParent.set(node.parentId, [])
+      }
+      childrenByParent.get(node.parentId)!.push(node)
+    }
+  }
+
+  // Apply Dagre layout to children within each parent
+  const layoutChildren = new Map<string, { x: number; y: number }>()
+  for (const [parentId, children] of childrenByParent) {
+    if (children.length === 0) continue
+
+    // Create a Dagre graph for this parent's children
+    const childGraph = new dagre.graphlib.Graph()
+    childGraph.setDefaultEdgeLabel(() => ({}))
+    childGraph.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 60 })
+
+    for (const child of children) {
+      const w = child.width ?? NODE_WIDTH
+      const h = child.height ?? NODE_HEIGHT
+      childGraph.setNode(child.id, { width: w, height: h })
+    }
+
+    // Add edges between siblings (children of same parent)
+    for (const edge of edges) {
+      if (children.some((c) => c.id === edge.source) && children.some((c) => c.id === edge.target)) {
+        childGraph.setEdge(edge.source, edge.target)
+      }
+    }
+
+    // Layout the children
+    dagre.layout(childGraph)
+
+    // Extract positions for children
+    for (const child of children) {
+      const pos = childGraph.node(child.id)
+      const w = child.width ?? NODE_WIDTH
+      const h = child.height ?? NODE_HEIGHT
+      layoutChildren.set(child.id, { x: pos.x - w / 2, y: pos.y - h / 2 })
+    }
+  }
+
   return nodes.map((node) => {
-    if (node.parentId) return node
+    if (node.parentId) {
+      const childPos = layoutChildren.get(node.id)
+      return childPos ? { ...node, position: childPos } : node
+    }
     const p = positions.get(node.id)!
     return { ...node, position: { x: p.x, y: p.y } }
   })

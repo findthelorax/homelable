@@ -15,7 +15,13 @@ export function generateMarkdownTable(nodes: Node<NodeData>[]): string {
     .map((n) => {
       const d = n.data
       const services = d.services?.length
-        ? d.services.map((s) => `${s.service_name}:${s.port}`).join(', ')
+        ? d.services.map((s) => {
+            const endpoint = [
+              s.port !== undefined ? `:${s.port}` : '',
+              s.path ? (s.path.startsWith('/') ? s.path : `/${s.path}`) : '',
+            ].join('')
+            return `${s.service_name}${endpoint}`
+          }).join(', ')
         : EMPTY
       return [
         cell(d.label),

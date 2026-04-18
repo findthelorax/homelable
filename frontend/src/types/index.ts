@@ -37,9 +37,10 @@ export type NodeStatus = 'online' | 'offline' | 'pending' | 'unknown'
 export type CheckMethod = 'ping' | 'http' | 'https' | 'tcp' | 'ssh' | 'prometheus' | 'health' | 'none'
 
 export interface ServiceInfo {
-  port: number
+  port?: number
   protocol: 'tcp' | 'udp'
   service_name: string
+  path?: string
   icon?: string
   category?: string
 }

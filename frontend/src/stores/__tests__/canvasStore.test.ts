@@ -100,8 +100,7 @@ describe('canvasStore', () => {
   it('updateNode clearing parent_id converts position to absolute and clears parentId', () => {
     const proxmox = { ...makeNode('px1', { type: 'proxmox', container_mode: true }), position: { x: 100, y: 100 } }
     const lxc = { ...makeNode('lxc1', { type: 'lxc', parent_id: 'px1' }), position: { x: 30, y: 40 }, parentId: 'px1', extent: 'parent' as const }
-    useCanvasStore.getState().addNode(proxmox)
-    useCanvasStore.getState().addNode(lxc)
+    useCanvasStore.setState({ nodes: [proxmox, lxc] })
     useCanvasStore.getState().updateNode('lxc1', { parent_id: undefined })
     const node = useCanvasStore.getState().nodes.find((n) => n.id === 'lxc1')
     expect(node?.parentId).toBeUndefined()
@@ -235,7 +234,7 @@ describe('canvasStore', () => {
   })
 
   it('deleteNode also removes children with matching parentId', () => {
-    useCanvasStore.getState().addNode(makeNode('parent'))
+    useCanvasStore.getState().addNode(makeNode('parent', { container_mode: true }))
     useCanvasStore.getState().addNode(makeNode('child', { parent_id: 'parent' }))
     useCanvasStore.getState().deleteNode('parent')
     const { nodes } = useCanvasStore.getState()
@@ -244,7 +243,7 @@ describe('canvasStore', () => {
   })
 
   it('addNode with parent_id sets parentId and extent', () => {
-    useCanvasStore.getState().addNode(makeNode('parent'))
+    useCanvasStore.getState().addNode(makeNode('parent', { container_mode: true }))
     useCanvasStore.getState().addNode(makeNode('child', { parent_id: 'parent' }))
     const child = useCanvasStore.getState().nodes.find((n) => n.id === 'child')
     expect(child?.parentId).toBe('parent')

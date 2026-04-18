@@ -271,7 +271,7 @@ describe('DetailPanel', () => {
       // Two "Add" buttons: first = properties, second = services
       const addButtons = screen.getAllByText('Add')
       fireEvent.click(addButtons[addButtons.length - 1])
-      expect(screen.getByPlaceholderText('Service name')).toBeDefined()
+      expect(screen.getByPlaceholderText('Service')).toBeDefined()
     })
 
     it('calls updateNode with new service on Add confirm', () => {
@@ -291,9 +291,9 @@ describe('DetailPanel', () => {
       // Two "Add" header buttons: first = properties, second = services
       const addHeaders = screen.getAllByText('Add')
       fireEvent.click(addHeaders[addHeaders.length - 1])
-      fireEvent.change(screen.getByPlaceholderText('Service name'), { target: { value: 'nginx' } })
-      fireEvent.change(screen.getByPlaceholderText('Port (optional)'), { target: { value: '80' } })
-      fireEvent.keyDown(screen.getByPlaceholderText('Port (optional)'), { key: 'Enter' })
+      fireEvent.change(screen.getByPlaceholderText('Service'), { target: { value: 'nginx' } })
+      fireEvent.change(screen.getByPlaceholderText('Port'), { target: { value: '80' } })
+      fireEvent.keyDown(screen.getByPlaceholderText('Port'), { key: 'Enter' })
       expect(updateNode).toHaveBeenCalledOnce()
       expect(updateNode.mock.calls[0][1].services[0]).toMatchObject({ service_name: 'nginx', port: 80, protocol: 'tcp' })
     })
@@ -314,9 +314,9 @@ describe('DetailPanel', () => {
       render(<DetailPanel onEdit={vi.fn()} />)
       const addHeaders = screen.getAllByText('Add')
       fireEvent.click(addHeaders[addHeaders.length - 1])
-      fireEvent.change(screen.getByPlaceholderText('Service name'), { target: { value: 'zwavejs2mqtt' } })
-      fireEvent.change(screen.getByPlaceholderText('Path (optional, e.g. /a0d7b954_zwavejs2mqtt)'), { target: { value: '/a0d7b954_zwavejs2mqtt' } })
-      fireEvent.keyDown(screen.getByPlaceholderText('Path (optional, e.g. /a0d7b954_zwavejs2mqtt)'), { key: 'Enter' })
+      fireEvent.change(screen.getByPlaceholderText('Service'), { target: { value: 'zwavejs2mqtt' } })
+      fireEvent.change(screen.getByPlaceholderText('Path (e.g. /home)'), { target: { value: '/a0d7b954_zwavejs2mqtt' } })
+      fireEvent.keyDown(screen.getByPlaceholderText('Path (e.g. /home)'), { key: 'Enter' })
       expect(updateNode).toHaveBeenCalledOnce()
       expect(updateNode.mock.calls[0][1].services[0]).toMatchObject({ service_name: 'zwavejs2mqtt', protocol: 'tcp', path: '/a0d7b954_zwavejs2mqtt' })
       expect(updateNode.mock.calls[0][1].services[0].port).toBeUndefined()
@@ -361,9 +361,9 @@ describe('DetailPanel', () => {
       // Hover to reveal edit button (fireEvent.mouseOver isn't needed — opacity is CSS only)
       const editBtn = screen.getByTitle('Edit service')
       fireEvent.click(editBtn)
-      const nameInput = screen.getByPlaceholderText('Service name') as HTMLInputElement
+      const nameInput = screen.getByPlaceholderText('Service') as HTMLInputElement
       expect(nameInput.value).toBe('nginx')
-      const portInput = screen.getByPlaceholderText('Port (optional)') as HTMLInputElement
+      const portInput = screen.getByPlaceholderText('Port') as HTMLInputElement
       expect(portInput.value).toBe('80')
     })
 
@@ -381,7 +381,7 @@ describe('DetailPanel', () => {
       render(<DetailPanel onEdit={vi.fn()} />)
       fireEvent.click(screen.getByTitle('Edit service'))
 
-      const nameInput = screen.getByPlaceholderText('Service name')
+      const nameInput = screen.getByPlaceholderText('Service')
       fireEvent.change(nameInput, { target: { value: 'apache' } })
       fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 

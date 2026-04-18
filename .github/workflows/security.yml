@@ -2,9 +2,9 @@ name: Security
 
 on:
   push:
-    branches: [main]
+    branches: [homelab]
   pull_request:
-    branches: [main]
+    branches: [homelab]
   schedule:
     - cron: '0 9 * * 1'  # Weekly on Monday
 

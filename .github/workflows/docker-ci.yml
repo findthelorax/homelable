@@ -2,9 +2,9 @@ name: Docker CI
 
 on:
   push:
-    branches: [main]
+    branches: [homelab]
   pull_request:
-    branches: [main]
+    branches: [homelab]
 
 jobs:
   smoke-and-integration:

@@ -2,9 +2,9 @@ name: Quality
 
 on:
   push:
-    branches: [main]
+    branches: [homelab]
   pull_request:
-    branches: [main]
+    branches: [homelab]
 
 jobs:
   lint-scripts:

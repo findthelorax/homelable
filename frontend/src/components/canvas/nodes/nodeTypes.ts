@@ -1,4 +1,4 @@
-import { IspNode, RouterNode, SwitchNode, ServerNode, VmNode, LxcNode, NasNode, IotNode, ApNode, CameraNode, PrinterNode, ComputerNode, CplNode, DockerNode, GenericNode } from './index'
+import { IspNode, RouterNode, SwitchNode, ServerNode, VmNode, LxcNode, NasNode, IotNode, ApNode, CameraNode, PrinterNode, ComputerNode, CplNode, DockerNode, DockerContainerNode, GenericNode } from './index'
 import { ProxmoxGroupNode } from './ProxmoxGroupNode'
 import { GroupRectNode } from './GroupRectNode'
 import { GroupNode } from './GroupNode'
@@ -18,6 +18,7 @@ export const nodeTypes = {
   printer: PrinterNode,
   computer: ComputerNode,
   cpl: CplNode,
+  docker_container: DockerContainerNode,
   docker_host: DockerNode,
   generic: GenericNode,
   groupRect: GroupRectNode,

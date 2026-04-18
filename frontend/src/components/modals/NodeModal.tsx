@@ -11,7 +11,7 @@ import { ICON_REGISTRY, ICON_CATEGORIES, NODE_TYPE_DEFAULT_ICONS } from '@/utils
 
 const NODE_TYPE_GROUPS: { label: string; types: NodeType[] }[] = [
   { label: 'Hardware',       types: ['isp', 'router', 'switch', 'server', 'nas', 'ap', 'printer'] },
-  { label: 'Virtualization', types: ['proxmox', 'vm', 'lxc', 'docker_host'] },
+  { label: 'Virtualization', types: ['proxmox', 'vm', 'lxc', 'docker_host', 'docker_container'] },
   { label: 'IoT',            types: ['iot', 'camera', 'cpl'] },
   { label: 'Generic',        types: ['computer', 'generic', 'groupRect'] },
 ]
@@ -82,7 +82,7 @@ export function NodeModal({ open, onClose, onSubmit, initial, title = 'Add Node'
               <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={form.type} onValueChange={(v) => set('type', v as NodeType)}>
                 <SelectTrigger className="bg-[#21262d] border-[#30363d] text-sm h-8 w-full">
-                  <SelectValue />
+                  <SelectValue>{NODE_TYPE_LABELS[(form.type ?? 'server') as NodeType]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-[#21262d] border-[#30363d]">
                   {NODE_TYPE_GROUPS.map((group, i) => (

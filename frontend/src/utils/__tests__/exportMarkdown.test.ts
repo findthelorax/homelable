@@ -47,6 +47,19 @@ describe('generateMarkdownTable', () => {
     expect(md).toContain('https:443')
   })
 
+  it('includes service paths when present', () => {
+    const nodes = [makeNode({
+      label: 'Server',
+      services: [
+        { protocol: 'tcp', service_name: 'zwavejs2mqtt', path: '/a0d7b954_zwavejs2mqtt' },
+        { port: 3000, protocol: 'tcp', service_name: 'app', path: '/dashboard' },
+      ],
+    })]
+    const md = generateMarkdownTable(nodes)
+    expect(md).toContain('zwavejs2mqtt/a0d7b954_zwavejs2mqtt')
+    expect(md).toContain('app:3000/dashboard')
+  })
+
   it('escapes pipe characters in cell values', () => {
     const nodes = [makeNode({ label: 'A|B' })]
     const md = generateMarkdownTable(nodes)

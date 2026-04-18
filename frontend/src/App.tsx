@@ -5,7 +5,7 @@ import { applyDagreLayout } from '@/utils/layout'
 import { serializeNode, serializeEdge, deserializeApiNode, deserializeApiEdge, type ApiNode, type ApiEdge } from '@/utils/canvasSerializer'
 import { generateUUID } from '@/utils/uuid'
 import { generateMarkdownTable } from '@/utils/exportMarkdown'
-import { exportToPng } from '@/utils/export'
+import { exportToPng, type ExportQuality } from '@/utils/export'
 import { exportCanvasToYaml, downloadYaml } from '@/utils/exportYaml'
 import { parseYamlToCanvas } from '@/utils/importYaml'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -33,6 +33,7 @@ import type { NodeData, EdgeData } from '@/types'
 
 const STANDALONE = import.meta.env.VITE_STANDALONE === 'true'
 const STANDALONE_STORAGE_KEY = 'homelable_canvas'
+const CONTAINER_MODE_TYPES = new Set<NodeData['type']>(['proxmox', 'vm', 'lxc', 'docker_host'])
 
 export default function App() {
   const { loadCanvas, markSaved, markUnsaved, selectedNodeId, selectedNodeIds, addNode, updateNode, deleteNode, onConnect, updateEdge, deleteEdge, setProxmoxContainerMode, setNodeZIndex, editingGroupRectId, setEditingGroupRectId, nodes, edges, snapshotHistory, undo, redo, copySelectedNodes, pasteNodes } = useCanvasStore()
@@ -102,8 +103,8 @@ export default function App() {
           // Build a map of proxmox container mode to know if children should be nested
           const proxmoxContainerMap = new Map<string, boolean>(
             (apiNodes as ApiNode[])
-              .filter((n) => n.type === 'proxmox' || n.type === 'group')
-              .map((n) => [n.id, n.type === 'group' ? true : n.container_mode !== false])
+              .filter((n) => n.type === 'group' || n.container_mode === true)
+              .map((n) => [n.id, true])
           )
           const rfNodes = (apiNodes as ApiNode[]).map((n) => deserializeApiNode(n, proxmoxContainerMap))
           const rfEdges = (apiEdges as ApiEdge[]).map(deserializeApiEdge)
@@ -151,6 +152,12 @@ export default function App() {
     snapshotHistory()
     const id = generateUUID()
     const isProxmox = data.type === 'proxmox'
+    const nodeType = data.type ?? 'generic'
+    const rawZ = Number(data.custom_colors?.z_order ?? 5)
+    const nodeZOrder = Number.isFinite(rawZ) ? rawZ : 5
+    const mergedCustomColors = nodeType === 'groupRect'
+      ? data.custom_colors
+      : { ...(data.custom_colors ?? {}), z_order: nodeZOrder }
     const parentNode = data.parent_id ? nodes.find((n) => n.id === data.parent_id) : null
     // Children position is relative to parent; place near top-left with padding
     const position = parentNode
@@ -161,7 +168,8 @@ export default function App() {
       id,
       type: data.type ?? 'generic',
       position,
-      data: { status: 'unknown', services: [], ...data } as NodeData,
+      data: { status: 'unknown', services: [], ...data, custom_colors: mergedCustomColors } as NodeData,
+      ...(nodeType !== 'groupRect' ? { zIndex: nodeZOrder } : {}),
       ...(data.parent_id ? { parentId: data.parent_id, extent: 'parent' as const } : {}),
       ...(isProxmox ? { width: 300, height: 200 } : {}),
     }
@@ -240,14 +248,33 @@ export default function App() {
     if (!editNodeId) return
     snapshotHistory()
     const existingNode = nodes.find((n) => n.id === editNodeId)
-    updateNode(editNodeId, data)
-    // If proxmox container_mode changed, apply structural changes (children parentId, node dimensions)
-    if (data.type === 'proxmox' && typeof data.container_mode === 'boolean') {
+    const nodeType = data.type ?? existingNode?.data.type ?? 'generic'
+    const rawIncomingZ = Number(data.custom_colors?.z_order)
+    const rawExistingZ = Number(existingNode?.data.custom_colors?.z_order)
+    const nodeZOrder = Number.isFinite(rawIncomingZ)
+      ? rawIncomingZ
+      : Number.isFinite(rawExistingZ)
+      ? rawExistingZ
+      : 5
+    const nextCustomColors = nodeType === 'groupRect'
+      ? data.custom_colors
+      : {
+          ...(existingNode?.data.custom_colors ?? {}),
+          ...(data.custom_colors ?? {}),
+          z_order: nodeZOrder,
+        }
+
+    updateNode(editNodeId, { ...data, custom_colors: nextCustomColors })
+    if (nodeType !== 'groupRect') {
+      setNodeZIndex(editNodeId, nodeZOrder)
+    }
+    // If container_mode changed, apply structural changes (children parentId, node dimensions)
+    if (typeof data.container_mode === 'boolean') {
       setProxmoxContainerMode(editNodeId, data.container_mode)
     }
     // Sync virtual edge when parent_id changes on an LXC/VM node
-    const nodeType = data.type ?? existingNode?.data.type
-    if ((nodeType === 'lxc' || nodeType === 'vm') && 'parent_id' in data) {
+    const effectiveType = data.type ?? existingNode?.data.type
+    if ((effectiveType === 'lxc' || effectiveType === 'vm') && 'parent_id' in data) {
       const oldParentId = existingNode?.data.parent_id ?? null
       const newParentId = data.parent_id ?? null
       if (oldParentId !== newParentId) {
@@ -271,7 +298,7 @@ export default function App() {
       }
     }
     setEditNodeId(null)
-  }, [editNodeId, updateNode, setProxmoxContainerMode, nodes, edges, deleteEdge, onConnect, snapshotHistory])
+  }, [editNodeId, updateNode, setNodeZIndex, setProxmoxContainerMode, nodes, edges, deleteEdge, onConnect, snapshotHistory])
 
   const handleAutoLayout = useCallback(() => {
     const laid = applyDagreLayout(nodes, edges)
@@ -305,14 +332,14 @@ export default function App() {
     }
   }, [nodes, edges, snapshotHistory, loadCanvas, markUnsaved])
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (quality: ExportQuality) => {
     const el = canvasRef.current?.querySelector<HTMLElement>('.react-flow')
     if (!el) { toast.error('Canvas not ready'); return }
     try {
-      await exportToPng(el)
+      await exportToPng(el, { quality })
       toast.success('Exported as PNG')
-    } catch {
-      toast.error('Export failed')
+    } catch (err) {
+      toast.error(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }, [])
 
@@ -400,6 +427,7 @@ export default function App() {
                 <CanvasContainer
                   onConnect={handleEdgeConnect}
                   onEdgeDoubleClick={handleEdgeDoubleClick}
+                  onNodeDoubleClick={(node) => handleEditNode(node.id)}
                   onNodeDragStart={snapshotHistory}
                   onOpenPending={(deviceId) => {
                     setHighlightPendingId(undefined)
@@ -421,7 +449,9 @@ export default function App() {
           onClose={() => setAddNodeOpen(false)}
           onSubmit={handleAddNode}
           title="Add Node"
-          proxmoxNodes={nodes.filter((n) => n.type === 'proxmox').map((n) => ({ id: n.id, label: n.data.label }))}
+          parentContainerNodes={nodes
+            .filter((n) => CONTAINER_MODE_TYPES.has(n.data.type) && n.data.container_mode)
+            .map((n) => ({ id: n.id, label: n.data.label }))}
         />
 
         {/* key forces re-mount when editing a different node, resetting form state */}
@@ -432,7 +462,9 @@ export default function App() {
           onSubmit={handleUpdateNode}
           initial={editNode?.data}
           title="Edit Node"
-          proxmoxNodes={nodes.filter((n) => n.type === 'proxmox').map((n) => ({ id: n.id, label: n.data.label }))}
+          parentContainerNodes={nodes
+            .filter((n) => n.id !== editNodeId && CONTAINER_MODE_TYPES.has(n.data.type) && n.data.container_mode)
+            .map((n) => ({ id: n.id, label: n.data.label }))}
         />
 
         <EdgeModal

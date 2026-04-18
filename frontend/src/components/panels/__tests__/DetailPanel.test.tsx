@@ -292,10 +292,34 @@ describe('DetailPanel', () => {
       const addHeaders = screen.getAllByText('Add')
       fireEvent.click(addHeaders[addHeaders.length - 1])
       fireEvent.change(screen.getByPlaceholderText('Service name'), { target: { value: 'nginx' } })
-      fireEvent.change(screen.getByPlaceholderText('Port'), { target: { value: '80' } })
-      fireEvent.keyDown(screen.getByPlaceholderText('Port'), { key: 'Enter' })
+      fireEvent.change(screen.getByPlaceholderText('Port (optional)'), { target: { value: '80' } })
+      fireEvent.keyDown(screen.getByPlaceholderText('Port (optional)'), { key: 'Enter' })
       expect(updateNode).toHaveBeenCalledOnce()
       expect(updateNode.mock.calls[0][1].services[0]).toMatchObject({ service_name: 'nginx', port: 80, protocol: 'tcp' })
+    })
+
+    it('allows adding a path-only service without a port', () => {
+      const updateNode = vi.fn()
+      vi.mocked(canvasStore.useCanvasStore).mockReturnValue({
+        nodes: [makeNode({})],
+        selectedNodeId: 'n1',
+        selectedNodeIds: [],
+        setSelectedNode: vi.fn(),
+        deleteNode: vi.fn(),
+        updateNode,
+        snapshotHistory: vi.fn(),
+        createGroup: vi.fn(),
+        ungroup: vi.fn(),
+      } as unknown as ReturnType<typeof canvasStore.useCanvasStore>)
+      render(<DetailPanel onEdit={vi.fn()} />)
+      const addHeaders = screen.getAllByText('Add')
+      fireEvent.click(addHeaders[addHeaders.length - 1])
+      fireEvent.change(screen.getByPlaceholderText('Service name'), { target: { value: 'zwavejs2mqtt' } })
+      fireEvent.change(screen.getByPlaceholderText('Path (optional, e.g. /a0d7b954_zwavejs2mqtt)'), { target: { value: '/a0d7b954_zwavejs2mqtt' } })
+      fireEvent.keyDown(screen.getByPlaceholderText('Path (optional, e.g. /a0d7b954_zwavejs2mqtt)'), { key: 'Enter' })
+      expect(updateNode).toHaveBeenCalledOnce()
+      expect(updateNode.mock.calls[0][1].services[0]).toMatchObject({ service_name: 'zwavejs2mqtt', protocol: 'tcp', path: '/a0d7b954_zwavejs2mqtt' })
+      expect(updateNode.mock.calls[0][1].services[0].port).toBeUndefined()
     })
 
     it('calls updateNode without the removed service when X is clicked', () => {
@@ -339,7 +363,7 @@ describe('DetailPanel', () => {
       fireEvent.click(editBtn)
       const nameInput = screen.getByPlaceholderText('Service name') as HTMLInputElement
       expect(nameInput.value).toBe('nginx')
-      const portInput = screen.getByPlaceholderText('Port') as HTMLInputElement
+      const portInput = screen.getByPlaceholderText('Port (optional)') as HTMLInputElement
       expect(portInput.value).toBe('80')
     })
 

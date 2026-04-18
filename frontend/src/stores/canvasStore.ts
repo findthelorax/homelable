@@ -172,8 +172,18 @@ export const useCanvasStore = create<CanvasState>((set) => ({
 
   addNode: (node) =>
     set((state) => {
-      const enriched = node.data.parent_id
-        ? { ...node, parentId: node.data.parent_id, extent: 'parent' as const }
+      const parent = node.data.parent_id ? state.nodes.find((n) => n.id === node.data.parent_id) : null
+      const shouldNestInParent = !!(parent?.data.container_mode)
+      const enriched = node.data.parent_id && shouldNestInParent
+        ? {
+            ...node,
+            parentId: node.data.parent_id,
+            extent: 'parent' as const,
+            position: {
+              x: Math.max(10, node.position.x - parent.position.x),
+              y: Math.max(10, node.position.y - parent.position.y),
+            },
+          }
         : node
       // Parents must come before children in the array (React Flow requirement)
       const withoutNew = state.nodes.filter((n) => n.id !== node.id)
@@ -283,14 +293,38 @@ export const useCanvasStore = create<CanvasState>((set) => ({
 
   setProxmoxContainerMode: (proxmoxId, enabled) =>
     set((state) => {
+      const parentNode = state.nodes.find((n) => n.id === proxmoxId)
       let nodes = state.nodes.map((n) => {
         if (n.id === proxmoxId) {
           const withMode = { ...n, data: { ...n.data, container_mode: enabled } }
+          if (n.data.type !== 'proxmox') return withMode
           return enabled
-            ? { ...withMode, width: 300, height: 200 }
+            ? { ...withMode, width: n.width ?? 300, height: n.height ?? 200 }
             : { ...withMode, width: undefined, height: undefined }
         }
         if (n.data.parent_id === proxmoxId) {
+          if (enabled && parentNode) {
+            return {
+              ...n,
+              parentId: proxmoxId,
+              extent: 'parent' as const,
+              position: {
+                x: Math.max(10, n.position.x - parentNode.position.x),
+                y: Math.max(10, n.position.y - parentNode.position.y),
+              },
+            }
+          }
+          if (!enabled && parentNode) {
+            return {
+              ...n,
+              parentId: undefined,
+              extent: undefined,
+              position: {
+                x: parentNode.position.x + n.position.x,
+                y: parentNode.position.y + n.position.y,
+              },
+            }
+          }
           return enabled
             ? { ...n, parentId: proxmoxId, extent: 'parent' as const }
             : { ...n, parentId: undefined, extent: undefined }
@@ -428,9 +462,21 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   toggleHideIp: () => set((s) => ({ hideIp: !s.hideIp })),
 
   loadCanvas: (nodes, edges) => {
+    const normalized = nodes.map((n) => {
+      if (n.type === 'groupRect') {
+        const rawZoneZ = Number(n.data.custom_colors?.z_order ?? 1)
+        const zoneZ = Number.isFinite(rawZoneZ) ? rawZoneZ : 1
+        return n.zIndex == null ? { ...n, zIndex: zoneZ - 10 } : n
+      }
+
+      const rawNodeZ = Number(n.data.custom_colors?.z_order ?? 5)
+      const nodeZ = Number.isFinite(rawNodeZ) ? rawNodeZ : 5
+      return n.zIndex == null ? { ...n, zIndex: nodeZ } : n
+    })
+
     // React Flow requires parents before children in the array
-    const parents = nodes.filter((n) => !n.parentId)
-    const children = nodes.filter((n) => !!n.parentId)
+    const parents = normalized.filter((n) => !n.parentId)
+    const children = normalized.filter((n) => !!n.parentId)
     set({ nodes: [...parents, ...children], edges, hasUnsavedChanges: false, selectedNodeId: null, past: [], future: [], clipboard: [], fitViewPending: true })
   },
 

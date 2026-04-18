@@ -1,13 +1,14 @@
-import { useRef } from 'react'
-import { Save, LayoutDashboard, Download, Palette, Undo2, Redo2, HelpCircle, Table2, FileDown, Upload } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Save, LayoutDashboard, Download, Palette, Undo2, Redo2, HelpCircle, Table2, FileDown, Upload, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Logo } from '@/components/ui/Logo'
 import { useCanvasStore } from '@/stores/canvasStore'
+import type { ExportQuality } from '@/utils/export'
 
 interface ToolbarProps {
   onSave: () => void
   onAutoLayout: () => void
-  onExport: () => void
+  onExport: (quality: ExportQuality) => void
   onChangeStyle: () => void
   onUndo: () => void
   onRedo: () => void
@@ -20,6 +21,19 @@ interface ToolbarProps {
 export function Toolbar({ onSave, onAutoLayout, onExport, onChangeStyle, onUndo, onRedo, onShortcuts, onExportMd, onExportYaml, onImportYaml }: ToolbarProps) {
   const { hasUnsavedChanges, past, future } = useCanvasStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!exportMenuOpen) return
+    const onDocumentClick = (event: MouseEvent) => {
+      if (!exportMenuRef.current?.contains(event.target as Node)) {
+        setExportMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocumentClick)
+    return () => document.removeEventListener('mousedown', onDocumentClick)
+  }, [exportMenuOpen])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -75,9 +89,44 @@ export function Toolbar({ onSave, onAutoLayout, onExport, onChangeStyle, onUndo,
       <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={onExportYaml} title="Export canvas as YAML">
         <Download size={14} /> Export
       </Button>
-      <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={onExport} title="Download canvas as PNG">
-        <FileDown size={14} /> PNG
-      </Button>
+      <div className="relative" ref={exportMenuRef}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-1.5 text-muted-foreground hover:text-foreground"
+          onClick={() => setExportMenuOpen((v) => !v)}
+          title="Download canvas as PNG"
+          aria-haspopup="menu"
+          aria-expanded={exportMenuOpen}
+        >
+          <FileDown size={14} /> PNG <ChevronDown size={12} />
+        </Button>
+        {exportMenuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-50 mt-1 min-w-32 rounded-md border border-[#30363d] bg-[#21262d] p-1 shadow-lg"
+          >
+            <button
+              className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-foreground hover:bg-[#30363d]"
+              onClick={() => { onExport('ultra'); setExportMenuOpen(false) }}
+            >
+              Ultra Quality
+            </button>
+            <button
+              className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-foreground hover:bg-[#30363d]"
+              onClick={() => { onExport('high'); setExportMenuOpen(false) }}
+            >
+              High Quality
+            </button>
+            <button
+              className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-foreground hover:bg-[#30363d]"
+              onClick={() => { onExport('standard'); setExportMenuOpen(false) }}
+            >
+              Standard Quality
+            </button>
+          </div>
+        )}
+      </div>
       <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={onExportMd} title="Copy inventory as Markdown table">
         <Table2 size={14} /> MD
       </Button>

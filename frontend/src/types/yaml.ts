@@ -4,10 +4,14 @@ export interface YamlNodeConnection {
   label: string
   linkType?: EdgeType
   linkLabel?: string
+  linkColor?: string
+  linkSourceHandle?: string
+  linkTargetHandle?: string
 }
 
 export interface YamlNode {
   nodeType: NodeType
+  containerMode?: boolean
   nodeIcon?: string
   label: string
   hostname?: string

@@ -10,7 +10,7 @@ jobs:
   smoke-and-integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # ── Write a minimal .env required by env_file: .env in docker-compose.yml ─
       # AUTH_PASSWORD_HASH is NOT set here — it's injected via docker-compose.ci.yml

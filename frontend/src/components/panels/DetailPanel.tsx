@@ -659,25 +659,127 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 function ServiceBadge({ svc, host, onEdit, onRemove }: { svc: ServiceInfo; host?: string; onEdit: () => void; onRemove: () => void }) {
-  const url = getServiceUrl(svc, host)
-  const color = CATEGORY_COLORS[svc.category ?? ''] ?? '#8b949e'
-  const portLabel = svc.port != null ? String(svc.port) : 'host'
-  const pathLabel = svc.path?.trim() ? svc.path.trim() : null
-  const inner = (
-    <div className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border text-xs transition-colors" style={{ background: '#21262d', borderColor: '#30363d', cursor: url ? 'pointer' : 'default' }}>
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className="shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-        <span className="font-medium truncate" style={{ color }} title={svc.service_name}>{svc.service_name}</span>
-        {pathLabel && <span className="truncate text-[#8b949e]" title={pathLabel}>{pathLabel}</span>}
+  const url = getServiceUrl(svc, host);
+  const color = CATEGORY_COLORS[svc.category ?? ''] ?? '#8b949e';
+  const hasPort = svc.port != null;
+  const portLabel = hasPort ? String(svc.port) : '';
+  const pathLabel = svc.path?.trim() ? svc.path.trim() : '';
+
+  const maxTotalWidth = 220;
+  const nameCharWidth = 7.2;
+  const nameWidth = Math.min(svc.service_name.length * nameCharWidth, maxTotalWidth - 60);
+  const pathMaxWidth = Math.max(0, maxTotalWidth - nameWidth - 60);
+  const showPath = pathLabel && pathMaxWidth > 30;
+
+  const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; text: string }>({ visible: false, x: 0, y: 0, text: '' });
+
+  return (
+    <div
+      className="group flex items-center border rounded-md text-xs transition-colors px-2 py-1.5 min-w-0"
+      style={{ background: '#21262d', borderColor: '#30363d', position: 'relative' }}
+    >
+      <span className="shrink-0 w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: color }} />
+		{url ? (
+		<a
+			href={url}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="font-medium truncate flex-grow min-w-0"
+			style={{ color, marginRight: 12, maxWidth: '100%' }}
+			title={svc.service_name}
+			tabIndex={0}
+			aria-label={svc.service_name}
+			onClick={e => e.stopPropagation()}
+		>
+			{svc.service_name}
+		</a>
+		) : (
+		<span
+			className="font-medium truncate flex-grow min-w-0"
+			style={{ color, marginRight: 12, maxWidth: '100%' }}
+			title={svc.service_name}
+			tabIndex={0}
+			aria-label={svc.service_name}
+		>
+			{svc.service_name}
+		</span>
+		)}
+      <div className="flex items-center gap-1 shrink-0" style={{ maxWidth: 180, minWidth: 0 }}>
+        {showPath && (
+          <span
+            className="truncate text-[#8b949e] text-right"
+            style={{ minWidth: 0, maxWidth: pathMaxWidth, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
+            onMouseEnter={e => {
+				if (e.currentTarget.offsetWidth < e.currentTarget.scrollWidth) {
+					setTooltip({ visible: true, x: e.clientX, y: e.clientY, text: pathLabel });
+				}
+			}}
+			onMouseMove={e => {
+				setTooltip(t => t.visible ? { ...t, x: e.clientX, y: e.clientY } : t);
+			}}
+			onMouseLeave={() => setTooltip(t => ({ ...t, visible: false }))}
+            tabIndex={0}
+            aria-label={pathLabel}
+          >
+            {pathLabel}
+          </span>
+        )}
+        {hasPort && (
+          <span className="font-mono text-[#8b949e]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{portLabel}/{svc.protocol}</span>
+        )}
+		{url ? (
+		  <a
+			href={url}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="inline-flex w-2.5 h-2.5 items-center justify-center shrink-0"
+			tabIndex={0}
+			aria-label="Open service link"
+			style={{ color: 'inherit' }}
+			onClick={e => e.stopPropagation()}
+		  >
+			<ExternalLink size={10} className="text-muted-foreground" />
+		  </a>
+		) : (
+		  <span style={{ width: 10, display: 'inline-block' }} />
+		)}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(); }}
+          className="opacity-100 transition-opacity text-[#8b949e] hover:text-[#00d4ff] ml-0.5"
+          title="Edit service"
+        >
+          <Pencil size={10} />
+        </button>
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+          className="opacity-100 transition-opacity text-[#8b949e] hover:text-[#f85149] ml-0.5"
+          title="Remove service"
+        >
+          <X size={10} />
+        </button>
       </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="font-mono text-[#8b949e]">{portLabel}/{svc.protocol}</span>
-        {url && <ExternalLink size={10} className="text-muted-foreground" />}
-        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit() }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#00d4ff] ml-0.5" title="Edit service"><Pencil size={10} /></button>
-        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove() }} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#f85149] ml-0.5" title="Remove service"><X size={10} /></button>
-      </div>
+
+	  {tooltip.visible && (
+		<div
+			style={{
+			position: 'fixed',
+			left: tooltip.x - 50,
+			top: tooltip.y + 10,
+			background: '#222',
+			color: '#fff',
+			padding: '2px 8px',
+			borderRadius: 4,
+			fontSize: 12,
+			zIndex: 9999,
+			pointerEvents: 'none',
+			boxShadow: '0 2px 8px #0008',
+			whiteSpace: 'nowrap',
+      		overflow: 'visible'
+			}}
+		>
+			{tooltip.text}
+		</div>
+	)}
     </div>
-  )
-  if (url) return <a href={url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-80 transition-opacity">{inner}</a>
-  return inner
+  );
 }

@@ -40,6 +40,7 @@ interface CanvasState {
   onEdgesChange: (changes: EdgeChange<Edge<EdgeData>>[]) => void
   onConnect: (connection: Connection) => void
   setSelectedNode: (id: string | null) => void
+  setMultiSelectedNodes: (id: string) => void
   addNode: (node: Node<NodeData>) => void
   updateNode: (id: string, data: Partial<NodeData>) => void
   deleteNode: (id: string) => void
@@ -172,6 +173,16 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   setSelectedNode: (id) => set({
     selectedNodeId: id,
     selectedNodeIds: id ? [id] : [],
+  }),
+  setMultiSelectedNodes: (id) => set((state) => {
+    const alreadySelected = state.selectedNodeIds.includes(id)
+    const selectedNodeIds = alreadySelected
+      ? state.selectedNodeIds.filter((nid) => nid !== id)
+      : [...state.selectedNodeIds, id]
+    return {
+      selectedNodeIds,
+      selectedNodeId: null,
+    }
   }),
 
   addNode: (node) =>

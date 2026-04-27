@@ -53,13 +53,6 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
   const activeTheme = useThemeStore((s) => s.activeTheme)
   const theme = THEMES[activeTheme]
 
-  const onNodeClick = useCallback((e: React.MouseEvent, node: Node<NodeData>) => {
-    if (e.ctrlKey || e.metaKey) {
-      setSelectedNode(null)
-    } else {
-      setSelectedNode(node.id)
-    }
-  }, [setSelectedNode])
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null)
@@ -91,7 +84,6 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnectProp}
-        onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         onEdgeDoubleClick={handleEdgeDoubleClick}
         onNodeDoubleClick={handleNodeDoubleClick}

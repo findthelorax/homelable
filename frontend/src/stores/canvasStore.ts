@@ -469,6 +469,49 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     const parents = nodes.filter((n) => !n.parentId)
     const children = nodes.filter((n) => !!n.parentId)
     set({ nodes: [...parents, ...children], edges, hasUnsavedChanges: false, selectedNodeId: null, past: [], future: [], clipboard: [], fitViewPending: true })
+  
+    // Sanitize edges: only keep edges where both source and target node actually render the referenced handle
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+    const validHandle = (node: Node<NodeData> | undefined, handle: string | null | undefined): boolean => {
+      if (!handle) return true
+      if (!node) return false
+      if (['group', 'groupRect'].includes(node.data.type)) return false
+      const count = node.data?.bottom_handles ?? 1
+      if (count < 1) return false
+      const valid = [...Array(Math.max(1, Math.min(4, count))).keys()].map((i) =>
+        i === 0 ? 'bottom' : `bottom-${i + 1}`,
+      )
+      return valid.includes(handle)
+    }
+    const sanitizedEdges = edges
+      .map((e) => {
+        let sourceHandle = e.sourceHandle
+        let targetHandle = e.targetHandle
+        const sourceNode = nodeMap.get(e.source)
+        const targetNode = nodeMap.get(e.target)
+        if (sourceNode && sourceHandle && !validHandle(sourceNode, sourceHandle)) {
+          sourceHandle = 'bottom'
+        }
+        if (targetNode && targetHandle && !validHandle(targetNode, targetHandle)) {
+          targetHandle = 'bottom'
+        }
+        return { ...e, sourceHandle, targetHandle }
+      })
+      .filter((e) => {
+        const sourceNode = nodeMap.get(e.source)
+        const targetNode = nodeMap.get(e.target)
+        return validHandle(sourceNode, e.sourceHandle) && validHandle(targetNode, e.targetHandle)
+      })
+    set({
+      nodes: [...parents, ...children],
+      edges: sanitizedEdges,
+      hasUnsavedChanges: false,
+      selectedNodeId: null,
+      past: [],
+      future: [],
+      clipboard: [],
+      fitViewPending: true,
+    })
   },
 
   clearFitViewPending: () => set({ fitViewPending: false }),

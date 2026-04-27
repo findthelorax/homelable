@@ -88,6 +88,7 @@ export interface NodeData extends Record<string, unknown> {
     text_size?: number
     z_order?: number
     show_border?: boolean
+    show_background?: boolean
     width?: number
     height?: number
   }

@@ -73,6 +73,15 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
             },
           })
         }}
+        onToggleBackground={() => {
+          snapshotHistory()
+          updateNode(node.id, {
+            custom_colors: {
+              ...node.data.custom_colors,
+              show_background: !(node.data.custom_colors?.show_background !== false),
+            },
+          })
+        }}
         onClose={() => setSelectedNode(null)}
         onSelectChild={(id) => setSelectedNode(id)}
       />
@@ -197,7 +206,7 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
   }
 
   return (
-    <aside className="w-72 shrink-0 flex flex-col border-l border-border bg-[#161b22] overflow-y-auto">
+    <aside className="w-88 shrink-0 flex flex-col border-l border-border bg-[#161b22] overflow-y-auto">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="font-semibold text-sm text-foreground truncate">{data.label}</span>
         <button aria-label="Close panel" onClick={() => setSelectedNode(null)} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
@@ -412,15 +421,17 @@ interface GroupDetailPanelProps {
   nodes: Node<NodeData>[]
   onUngroup: () => void
   onToggleBorder: () => void
+  onToggleBackground: () => void
   onClose: () => void
   onSelectChild: (id: string) => void
 }
 
-function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onSelectChild }: GroupDetailPanelProps) {
+function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onToggleBackground, onClose, onSelectChild }: GroupDetailPanelProps) {
   const children = nodes.filter((n) => n.parentId === node.id)
   const onlineCount = children.filter((n) => n.data.status === 'online').length
   const offlineCount = children.filter((n) => n.data.status === 'offline').length
   const showBorder = node.data.custom_colors?.show_border !== false
+  const showBackground = node.data.custom_colors?.show_background !== false
 
   const handleUngroup = () => {
     if (confirm(`Ungroup "${node.data.label}"? Nodes will be released to the canvas.`)) {
@@ -429,7 +440,7 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
   }
 
   return (
-    <aside className="w-72 shrink-0 flex flex-col border-l border-border bg-[#161b22] overflow-y-auto">
+    <aside className="w-88 shrink-0 flex flex-col border-l border-border bg-[#161b22] overflow-y-auto">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           <Layers size={14} className="text-[#00d4ff] shrink-0" />
@@ -466,13 +477,22 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
 
       {/* Actions */}
       <div className="px-4 py-3 border-t border-border space-y-2">
-        <button
-          onClick={onToggleBorder}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-[#21262d] transition-colors"
-        >
-          {showBorder ? <Eye size={13} /> : <EyeOff size={13} />}
-          {showBorder ? 'Hide border & title' : 'Show border & title'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onToggleBorder}
+            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-[#21262d] transition-colors"
+          >
+            {showBorder ? <Eye size={13} /> : <EyeOff size={13} />}
+            {showBorder ? 'Hide border & title' : 'Show border & title'}
+          </button>
+          <button
+            onClick={onToggleBackground}
+            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-[#21262d] transition-colors"
+          >
+            {showBackground ? <Eye size={13} /> : <EyeOff size={13} />}
+            {showBackground ? 'Hide background' : 'Show background'}
+          </button>
+        </div>
         <Button
           size="sm"
           variant="destructive"
@@ -636,7 +656,7 @@ function PropertyBadge({ prop, onToggleVisible, onEdit, onRemove }: {
         <span className="font-medium truncate text-foreground" title={prop.key}>{prop.key}</span>
         <span className="text-muted-foreground truncate" title={prop.value}>· {prop.value}</span>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={onToggleVisible}
           title={prop.visible ? 'Hide on node' : 'Show on node'}
@@ -693,7 +713,7 @@ function ServiceBadge({ svc, host, onEdit, onRemove }: { svc: ServiceInfo; host?
           {svc.service_name}
         </span>
       )}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         {pathLabel && (
           <TooltipProvider>
             <Tooltip>
@@ -730,14 +750,14 @@ function ServiceBadge({ svc, host, onEdit, onRemove }: { svc: ServiceInfo; host?
         )}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit() }}
-          className="opacity-100 transition-opacity text-[#8b949e] hover:text-[#00d4ff] ml-0.5"
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#00d4ff]"
           title="Edit service"
         >
           <Pencil size={10} />
         </button>
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove() }}
-          className="opacity-100 transition-opacity text-[#8b949e] hover:text-[#f85149] ml-0.5"
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-[#8b949e] hover:text-[#f85149]"
           title="Remove service"
         >
           <X size={10} />

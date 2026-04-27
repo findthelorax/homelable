@@ -125,6 +125,27 @@
     padding: 0 !important;
 }
 
+/* Resizer Styling */
+.react-flow__resize-control {
+    border-radius: 30% !important;
+}
+
+.react-flow__resize-control.top.left {
+    transform: translate(4.2px, 4.2px) !important;
+}
+
+.react-flow__resize-control.top.right {
+    transform: translate(-4.2px, 4.2px) !important;
+}
+
+.react-flow__resize-control.bottom.left {
+    transform: translate(4.2px, -4.2px) !important;
+}
+
+.react-flow__resize-control.bottom.right {
+    transform: translate(-4.2px, -4.2px) !important;
+}
+
 /* Mono font utility */
 .font-mono {
     font-family: 'JetBrains Mono', monospace;

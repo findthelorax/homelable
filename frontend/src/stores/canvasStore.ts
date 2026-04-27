@@ -140,10 +140,13 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   onNodesChange: (changes) =>
     set((state) => {
       const nodes = applyNodeChanges(changes, state.nodes)
-      const selectedNodeIds = nodes.filter((n) => n.selected).map((n) => n.id)
+      const selected = nodes.filter((n) => n.selected)
+      const selectedNodeIds = selected.map((n) => n.id)
+      const selectedNodeId = selected.length === 1 ? selected[0].id : null
       return {
         nodes,
         selectedNodeIds,
+        selectedNodeId,
         hasUnsavedChanges: state.hasUnsavedChanges || changes.some((c) => c.type !== 'select'),
       }
     }),

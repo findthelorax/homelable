@@ -56,7 +56,6 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
   return (
     <div className="relative">
 
-      {/* Group border */}
       <div
         className="w-full h-full rounded-xl border-2 flex flex-col overflow-hidden"
         style={{
@@ -74,11 +73,11 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
         }}
       >
       <NodeResizer
+        isVisible={selected}
         minWidth={220}
         minHeight={160}
-        isVisible={selected}
         lineStyle={{ borderColor: glow, opacity: 0.6 }}
-        handleStyle={{ borderColor: glow, backgroundColor: theme.colors.nodeCardBackground, width: 6, height: 6 }}
+        handleStyle={{ borderColor: glow, backgroundColor: theme.colors.nodeCardBackground, width: 16, height: 16 }}
       />
 
         {/* Header bar */}
@@ -109,7 +108,10 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
 
             {/* IP / HOST */}
             {(data.ip || data.hostname) && (
-              <div className="flex flex-wrap gap-1 font-mono text-[9px] min-w-0">
+              <div 
+                className="flex flex-wrap gap-1 font-mono text-[9px] min-w-0"
+                style={{ color: theme.colors.nodeSubtextColor }}
+              >
                 {data.ip && <a className="hover:underline cursor-pointer">{hideIp ? maskIp(data.ip) : data.ip}</a>}
                 {data.hostname && <a className="hover:underline cursor-pointer">{data.hostname}</a>}
               </div>

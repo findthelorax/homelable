@@ -564,4 +564,34 @@ export const useCanvasStore = create<CanvasState>((set) => ({
       })
       return { nodes, edges, hasUnsavedChanges: true }
     }),
+  
+  unlinkNodeFromGroup: (nodeId: string) =>
+    set((state) => {
+      const node = state.nodes.find((n) => n.id === nodeId)
+      if (!node || !node.parentId) return state
+      const parent = state.nodes.find((n) => n.id === node.parentId)
+      if (!parent) return state
+      const updatedNodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n
+        return {
+          ...n,
+          parentId: undefined,
+          extent: undefined,
+          position: {
+            x: parent.position.x + n.position.x,
+            y: parent.position.y + n.position.y,
+          },
+          data: { ...n.data, parent_id: undefined },
+        }
+      })
+      // Parents before children
+      const parents = updatedNodes.filter((n) => !n.parentId)
+      const children = updatedNodes.filter((n) => !!n.parentId)
+      return {
+        nodes: [...parents, ...children],
+        hasUnsavedChanges: true,
+        past: [...state.past.slice(-49), { nodes: state.nodes, edges: state.edges }],
+        future: [],
+      }
+    }),
 }))

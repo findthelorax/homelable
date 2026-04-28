@@ -1,5 +1,5 @@
 import { createElement, useState } from 'react'
-import { X, Edit, Trash2, ExternalLink, Plus, Pencil, Layers, Ungroup, Eye, EyeOff } from 'lucide-react'
+import { X, Edit, Trash2, ExternalLink, Plus, Pencil, Layers, Ungroup, Eye, EyeOff, Link2Off } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
@@ -416,7 +416,9 @@ interface GroupDetailPanelProps {
   onSelectChild: (id: string) => void
 }
 
+
 function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onSelectChild }: GroupDetailPanelProps) {
+  const { unlinkNodeFromGroup } = useCanvasStore()
   const children = nodes.filter((n) => n.parentId === node.id)
   const onlineCount = children.filter((n) => n.data.status === 'online').length
   const offlineCount = children.filter((n) => n.data.status === 'offline').length
@@ -425,6 +427,13 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
   const handleUngroup = () => {
     if (confirm(`Ungroup "${node.data.label}"? Nodes will be released to the canvas.`)) {
       onUngroup()
+    }
+  }
+
+  const handleUnlink = (e: React.MouseEvent, childId: string) => {
+    e.stopPropagation()
+    if (confirm('Remove this node from the group?')) {
+      unlinkNodeFromGroup(childId)
     }
   }
 
@@ -452,15 +461,25 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Members</span>
         {children.length === 0 && <p className="text-xs text-muted-foreground/50">No nodes in this group.</p>}
         {children.map((child) => (
-          <button
+          <div
             key={child.id}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#21262d] text-xs hover:bg-[#30363d] transition-colors text-left group"
+            tabIndex={0}
+            role="button"
             onClick={() => onSelectChild(child.id)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#21262d] text-xs hover:bg-[#30363d] transition-colors text-left"
           >
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[child.data.status] }} />
             <span className="truncate text-foreground font-medium">{child.data.label}</span>
             <span className="ml-auto text-muted-foreground shrink-0">{NODE_TYPE_LABELS[child.data.type] ?? child.data.type}</span>
-          </button>
+            <button
+              className="ml-2 opacity-60 group-hover:opacity-100 text-[#8b949e] hover:text-[#f85149] transition-colors"
+              title="Remove from group"
+              aria-label="Remove from group"
+              onClick={(e) => handleUnlink(e, child.id)}
+            >
+              <Link2Off size={13} />
+            </button>
+          </div>
         ))}
       </div>
 

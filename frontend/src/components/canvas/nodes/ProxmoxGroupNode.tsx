@@ -55,9 +55,8 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
   // CONTAINER MODE
   return (
     <div className="relative">
-
       <div
-        className="w-full h-full rounded-xl border-2 flex flex-col overflow-hidden"
+        className="relative rounded-xl border-2 flex flex-col overflow-hidden"
         style={{
           width: width ?? '100%',
           height: height ?? '100%',
@@ -77,7 +76,7 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
         minWidth={220}
         minHeight={160}
         lineStyle={{ borderColor: glow, opacity: 0.6 }}
-        handleStyle={{ borderColor: glow, backgroundColor: theme.colors.nodeCardBackground, width: 16, height: 16 }}
+        handleStyle={{ borderColor: glow, backgroundColor: colors.border, width: 16, height: 16 }}
       />
 
         {/* Header bar */}
@@ -97,6 +96,7 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
           >
             {createElement(resolvedIcon, { size: 15 })}
           </div>
+          
           <div className="flex flex-col min-w-0 flex-1">
             <div
               className="text-[11px] font-semibold leading-tight truncate"
@@ -142,7 +142,8 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
                 })}
               </div>
             )}
-    </div>
+        </div>
+
           {/* Status dot */}
           <div
             className="ml-auto mt-1 w-1.5 h-1.5 rounded-full shrink-0"
@@ -153,7 +154,7 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
 
         {/* Inner area — React Flow places children here */}
         <div className="flex-1 relative" />
-      </div>
+        </div>
 
       <Handle
         type="source"
@@ -186,6 +187,5 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
         style={{ background: proxmoxAccent, borderColor: `${proxmoxAccent}88`, width: 6, height: 6 }}
       />
     </div>
-
   )
 }

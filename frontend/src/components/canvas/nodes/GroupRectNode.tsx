@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Handle, Position, NodeResizer, type NodeProps, type Node } from '@xyflow/react'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useThemeStore } from '@/stores/themeStore'
+import { resolveNodeColors } from '@/utils/nodeColors'
 import type { NodeData, TextPosition } from '@/types'
 
 const FONT_FAMILIES: Record<string, string> = {
@@ -50,6 +52,10 @@ export function GroupRectNode({ id, data, selected }: NodeProps<Node<NodeData>>)
   const textPos = (rc.text_position ?? 'top-left') as TextPosition
   const posStyle = POSITION_STYLES[textPos]
 
+  const activeTheme = useThemeStore((s) => s.activeTheme)
+  const colors = resolveNodeColors(data, activeTheme)
+  const glow = colors.border
+
   const outsideJustify = textPos.includes('right') ? 'flex-end'
     : (textPos.includes('center') || textPos === 'center') ? 'center'
     : 'flex-start'
@@ -80,19 +86,16 @@ export function GroupRectNode({ id, data, selected }: NodeProps<Node<NodeData>>)
   }
 
   return (
-    <>
+    <div className="relative">
       <NodeResizer
         isVisible={selected}
         minWidth={80}
         minHeight={60}
-        handleStyle={{
-          width: 8,
-          height: 8,
-          borderRadius: 2,
-          background: '#00d4ff',
-          border: '1px solid #0d1117',
-        }}
         lineStyle={{ borderColor: 'transparent' }}
+        handleStyle={{
+          borderColor: glow,
+          background: colors.border,
+        }}
       />
 
       {HANDLE_SIDES.map(({ id: hid, position }) => (
@@ -148,6 +151,6 @@ export function GroupRectNode({ id, data, selected }: NodeProps<Node<NodeData>>)
           </span>
         )}
       </div>
-    </>
+    </div>
   )
 }

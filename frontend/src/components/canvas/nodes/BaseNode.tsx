@@ -68,12 +68,14 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
         lineStyle={{ borderColor: 'transparent' }}
         handleStyle={{ borderColor: colors.border, background: colors.border, width: 16, height: 16 }}
       />
+
       <Handle
         type="source"
         position={Position.Top}
         id="top"
         style={{ background: theme.colors.handleBackground, borderColor: theme.colors.handleBorder }}
       />
+      
       <Handle type="target" position={Position.Top} id="top-t" style={{ opacity: 0, width: 12, height: 12 }} />
 
       {/* Status dot — absolute to avoid affecting node auto-width */}

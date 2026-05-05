@@ -77,13 +77,6 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
       />
       <Handle type="target" position={Position.Top} id="top-t" style={{ opacity: 0, width: 12, height: 12 }} />
 
-      {/* Status dot — absolute to avoid affecting node auto-width */}
-      <div
-        className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: statusColor }}
-        title={data.status}
-      />
-
       {/* Main row */}
       <div className="flex flex-row items-center gap-2.5 px-2.5 py-2 min-w-0 overflow-hidden">
         {/* Icon */}
@@ -98,13 +91,20 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
         </div>
 
         {/* Label + IP */}
-        <div className="flex flex-col min-w-0">
-          <div
-            className="text-xs font-medium leading-tight truncate"
-            style={{ color: theme.colors.nodeLabelColor }}
-            title={data.label}
-          >
-            {data.label}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-start gap-1 min-w-0">
+            <div
+              className="text-xs font-medium leading-tight truncate flex-1 min-w-0"
+              style={{ color: theme.colors.nodeLabelColor }}
+              title={data.label}
+            >
+              {data.label}
+            </div>
+            <div
+              className="w-1.5 h-1.5 rounded-full shrink-0 mt-0.5"
+              style={{ backgroundColor: statusColor }}
+              title={data.status}
+            />
           </div>
           {data.ip && splitIps(data.ip).map((ip) => (
             <div

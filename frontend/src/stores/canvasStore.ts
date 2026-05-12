@@ -50,6 +50,8 @@ interface CanvasState {
   setNodeZIndex: (id: string, zIndex: number) => void
   editingGroupRectId: string | null
   setEditingGroupRectId: (id: string | null) => void
+  editingTextId: string | null
+  setEditingTextId: (id: string | null) => void
   createGroup: (nodeIds: string[], name: string) => void
   ungroup: (groupId: string) => void
   markSaved: () => void
@@ -72,6 +74,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   selectedNodeId: null,
   selectedNodeIds: [],
   editingGroupRectId: null,
+  editingTextId: null,
   hideIp: false,
   scanEventTs: 0,
   fitViewPending: false,
@@ -220,7 +223,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
         if (n.id !== id) return n
         const updated: Node<NodeData> = { ...n, data: { ...n.data, ...data } }
         // When properties change, clear stored height so the node auto-sizes to fit new content
-        if ('properties' in data && n.data.type !== 'proxmox' && n.data.type !== 'groupRect') {
+        if ('properties' in data && n.data.type !== 'proxmox' && n.data.type !== 'groupRect' && n.data.type !== 'group') {
           updated.height = undefined
         }
         if ('parent_id' in data) {
@@ -363,6 +366,8 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     })),
 
   setEditingGroupRectId: (id) => set({ editingGroupRectId: id }),
+
+  setEditingTextId: (id) => set({ editingTextId: id }),
 
   createGroup: (nodeIds, name) =>
     set((state) => {

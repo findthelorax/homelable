@@ -20,6 +20,8 @@ import { THEMES } from '@/utils/themes'
 import { nodeTypes } from './nodes/nodeTypes'
 import { edgeTypes } from './edges/edgeTypes'
 import { SearchBar } from './SearchBar'
+import { AlignmentGuides } from './AlignmentGuides'
+import { useAlignmentGuides } from '@/hooks/useAlignmentGuides'
 import type { NodeData, EdgeData } from '@/types'
 
 interface CanvasContainerProps {
@@ -76,6 +78,8 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
     []
   )
 
+  const { guides, onNodeDrag, onNodeDragStop } = useAlignmentGuides()
+
   return (
     <div className="w-full h-full" style={{ background: theme.colors.canvasBackground }}>
       <ReactFlow
@@ -88,6 +92,8 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
         onEdgeDoubleClick={handleEdgeDoubleClick}
         onNodeDoubleClick={handleNodeDoubleClick}
         onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         deleteKeyCode={['Backspace', 'Delete']}
@@ -113,6 +119,7 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
           color={theme.colors.canvasDotColor}
         />
         <SearchBar onOpenPending={onOpenPending} />
+        <AlignmentGuides guides={guides} />
         <Controls>
           <ControlButton
             onClick={() => setLassoMode((m) => !m)}

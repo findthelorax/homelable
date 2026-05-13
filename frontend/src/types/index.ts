@@ -1,6 +1,7 @@
 export type NodeType =
   | 'isp'
   | 'router'
+  | 'firewall'
   | 'switch'
   | 'server'
   | 'proxmox'
@@ -18,6 +19,10 @@ export type NodeType =
   | 'generic'
   | 'groupRect'
   | 'group'
+  | 'text'
+  | 'zigbee_coordinator'
+  | 'zigbee_router'
+  | 'zigbee_enddevice'
 
 export type TextPosition =
   | 'top-left'
@@ -78,6 +83,7 @@ export interface NodeData extends Record<string, unknown> {
     border?: string
     background?: string
     icon?: string
+    show_services?: boolean
     // Group rectangle extras (type === 'groupRect')
     text_color?: string
     text_position?: TextPosition
@@ -92,7 +98,10 @@ export interface NodeData extends Record<string, unknown> {
     height?: number
   }
   custom_icon?: string
+  /** Number of bottom connection points, 1..48. Default 1 (centered). */
   bottom_handles?: number
+  /** Text node content (type === 'text') */
+  text_content?: string
 }
 
 export type EdgePathStyle = 'bezier' | 'smooth'
@@ -116,6 +125,7 @@ export interface EdgeData extends Record<string, unknown> {
 export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   isp: 'ISP / Modem',
   router: 'Router',
+  firewall: 'Firewall',
   switch: 'Switch',
   server: 'Server',
   proxmox: 'Proxmox VE',
@@ -133,6 +143,10 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   generic: 'Generic Device',
   groupRect: 'Group Rectangle',
   group: 'Node Group',
+  text: 'Text',
+  zigbee_coordinator: 'Zigbee Coordinator',
+  zigbee_router: 'Zigbee Router',
+  zigbee_enddevice: 'Zigbee End Device',
 }
 
 export const STATUS_COLORS: Record<NodeStatus, string> = {

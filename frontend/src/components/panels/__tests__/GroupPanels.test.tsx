@@ -37,6 +37,7 @@ const mockStore = {
   selectedNodeId: null,
   selectedNodeIds: [],
   setSelectedNode: vi.fn(),
+  selectNode: vi.fn(),
   deleteNode: vi.fn(),
   updateNode: vi.fn(),
   snapshotHistory: vi.fn(),
@@ -221,13 +222,13 @@ describe('GroupDetailPanel', () => {
     }))
   })
 
-  it('calls setSelectedNode when a child node is clicked', () => {
-    const setSelectedNode = vi.fn()
+  it('calls selectNode when a child node is clicked', () => {
+    const selectNode = vi.fn()
     const group = makeGroupNode()
     const child = makeNode('c1', { parentId: 'g1', data: { label: 'Child Node Alpha', type: 'server', status: 'online', services: [] } })
-    setupStore({ nodes: [group, child], selectedNodeId: 'g1', selectedNodeIds: ['g1'], setSelectedNode })
+    setupStore({ nodes: [group, child], selectedNodeId: 'g1', selectedNodeIds: ['g1'], selectNode })
     renderPanel()
     fireEvent.click(screen.getByText('Child Node Alpha'))
-    expect(setSelectedNode).toHaveBeenCalledWith('c1')
+    expect(selectNode).toHaveBeenCalledWith('c1')
   })
 })

@@ -21,7 +21,7 @@ type PropForm = { key: string; value: string; icon: string | null; visible: bool
 const EMPTY_PROP: PropForm = { key: '', value: '', icon: null, visible: true }
 
 export function DetailPanel({ onEdit }: DetailPanelProps) {
-  const { nodes, selectedNodeId, selectedNodeIds, setSelectedNode, deleteNode, updateNode, snapshotHistory, createGroup, ungroup } = useCanvasStore()
+  const { nodes, selectedNodeId, selectedNodeIds, setSelectedNode, selectNode, deleteNode, updateNode, snapshotHistory, createGroup, ungroup } = useCanvasStore()
 
   const [addingForNode, setAddingForNode] = useState<string | null>(null)
   const [newSvc, setNewSvc] = useState<SvcForm>(EMPTY_FORM)
@@ -75,7 +75,7 @@ export function DetailPanel({ onEdit }: DetailPanelProps) {
         }}
         onClose={() => setSelectedNode(null)}
         onSelectChild={(id) => {
-          setSelectedNode(id)
+          selectNode(id)
           window.dispatchEvent(new CustomEvent('canvas:focus-node', { detail: { id } }))
         }}
       />
@@ -466,16 +466,12 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
         {children.map((child) => (
           <div
             key={child.id}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#21262d] text-xs hover:bg-[#30363d] transition-colors text-left group cursor-pointer"
-            onClick={(e) => {
-              if ((e.target as HTMLElement).closest('button')) return
-              onSelectChild(child.id)
-            }}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#21262d] text-xs hover:bg-[#30363d] transition-colors text-left group"
           >
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[child.data.status] }} />
             <button
               type="button"
-              className="truncate text-foreground font-medium hover:text-[#00d4ff] hover:underline"
+              className="truncate text-foreground font-medium hover:text-[#00d4ff] hover:underline cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectChild(child.id)
@@ -486,7 +482,7 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
             </button>
             <span className="ml-auto text-muted-foreground shrink-0">{NODE_TYPE_LABELS[child.data.type] ?? child.data.type}</span>
             <button
-              className="ml-2 opacity-60 group-hover:opacity-100 text-[#8b949e] hover:text-[#f85149] transition-colors"
+              className="ml-2 opacity-60 group-hover:opacity-100 text-[#8b949e] hover:text-[#f85149] transition-colors cursor-pointer"
               title="Remove from group"
               aria-label="Remove from group"
               onClick={(e) => {

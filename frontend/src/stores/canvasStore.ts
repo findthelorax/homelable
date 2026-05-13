@@ -40,6 +40,7 @@ interface CanvasState {
   onEdgesChange: (changes: EdgeChange<Edge<EdgeData>>[]) => void
   onConnect: (connection: Connection) => void
   setSelectedNode: (id: string | null) => void
+  selectNode: (id: string) => void
   setMultiSelectedNodes: (id: string) => void
   addNode: (node: Node<NodeData>) => void
   updateNode: (id: string, data: Partial<NodeData>) => void
@@ -52,6 +53,7 @@ interface CanvasState {
   setEditingGroupRectId: (id: string | null) => void
   createGroup: (nodeIds: string[], name: string) => void
   ungroup: (groupId: string) => void
+  unlinkNodeFromGroup: (nodeId: string) => void
   markSaved: () => void
   markUnsaved: () => void
   loadCanvas: (nodes: Node<NodeData>[], edges: Edge<EdgeData>[]) => void
@@ -177,6 +179,16 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     selectedNodeId: id,
     selectedNodeIds: id ? [id] : [],
   }),
+  
+  selectNode: (id) => set((state) => {
+    const nodes = state.nodes.map((n) => ({ ...n, selected: n.id === id }))
+    return {
+      nodes,
+      selectedNodeId: id,
+      selectedNodeIds: [id],
+    }
+  }),
+  
   setMultiSelectedNodes: (id) => set((state) => {
     const alreadySelected = state.selectedNodeIds.includes(id)
     const selectedNodeIds = alreadySelected

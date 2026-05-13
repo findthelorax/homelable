@@ -38,7 +38,7 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
     setSelectedNode, snapshotHistory,
     fitViewPending, clearFitViewPending,
   } = useCanvasStore()
-  const { fitView } = useReactFlow()
+  const { fitView, setCenter } = useReactFlow()
 
   // Fit view after canvas loads (fitViewPending is set by loadCanvas)
   useEffect(() => {
@@ -49,6 +49,33 @@ export function CanvasContainer({ onConnect: onConnectProp, onEdgeDoubleClick, o
     }, 50)
     return () => clearTimeout(id)
   }, [fitViewPending, nodes.length, fitView, clearFitViewPending])
+
+  useEffect(() => {
+    const handleFocusNode = (event: Event) => {
+      const customEvent = event as CustomEvent<{ id?: string }>
+      const nodeId = customEvent.detail?.id
+      if (!nodeId) return
+      const node = nodes.find((n) => n.id === nodeId)
+      if (!node) return
+
+      let absX = node.position.x
+      let absY = node.position.y
+      if (node.parentId) {
+        const parent = nodes.find((n) => n.id === node.parentId)
+        if (parent) {
+          absX += parent.position.x
+          absY += parent.position.y
+        }
+      }
+
+      const width = node.measured?.width ?? node.width ?? 200
+      const height = node.measured?.height ?? node.height ?? 80
+      setCenter(absX + width / 2, absY + height / 2, { zoom: 1.5, duration: 500 })
+    }
+
+    window.addEventListener('canvas:focus-node', handleFocusNode)
+    return () => window.removeEventListener('canvas:focus-node', handleFocusNode)
+  }, [nodes, setCenter])
 
   const activeTheme = useThemeStore((s) => s.activeTheme)
   const theme = THEMES[activeTheme]

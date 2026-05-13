@@ -434,6 +434,30 @@ describe('canvasStore', () => {
     expect(useCanvasStore.getState().selectedNodeIds).toEqual([])
   })
 
+  it('addNodeToGroup nests an existing top-level node inside a group', () => {
+    const group = { ...makeNode('g1', { type: 'group', label: 'G' }), position: { x: 76, y: 52 } }
+    const n1 = { ...makeNode('n1'), position: { x: 300, y: 200 } }
+    useCanvasStore.setState({ nodes: [group, n1] })
+
+    useCanvasStore.getState().addNodeToGroup('n1', 'g1')
+
+    const child = useCanvasStore.getState().nodes.find((n) => n.id === 'n1')
+    expect(child?.parentId).toBe('g1')
+    expect(child?.extent).toBe('parent')
+    expect(child?.position).toEqual({ x: 224, y: 148 })
+  })
+
+  it('addNodeToGroup snapshots history and marks unsaved', () => {
+    const group = { ...makeNode('g1', { type: 'group', label: 'G' }), position: { x: 76, y: 52 } }
+    const n1 = { ...makeNode('n1'), position: { x: 300, y: 200 } }
+    useCanvasStore.setState({ nodes: [group, n1], past: [], future: [], hasUnsavedChanges: false })
+
+    useCanvasStore.getState().addNodeToGroup('n1', 'g1')
+
+    expect(useCanvasStore.getState().past).toHaveLength(1)
+    expect(useCanvasStore.getState().hasUnsavedChanges).toBe(true)
+  })
+
   // ── ungroup ───────────────────────────────────────────────────────────────
 
   it('ungroup restores children to absolute positions', () => {

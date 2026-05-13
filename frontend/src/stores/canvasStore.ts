@@ -54,6 +54,7 @@ interface CanvasState {
   editingTextId: string | null
   setEditingTextId: (id: string | null) => void
   createGroup: (nodeIds: string[], name: string) => void
+  addNodeToGroup: (nodeId: string, groupId: string) => void
   ungroup: (groupId: string) => void
   unlinkNodeFromGroup: (nodeId: string) => void
   markSaved: () => void
@@ -447,6 +448,50 @@ export const useCanvasStore = create<CanvasState>((set) => ({
         nodes,
         selectedNodeIds: [],
         selectedNodeId: null,
+        hasUnsavedChanges: true,
+        past: [...state.past.slice(-49), { nodes: state.nodes, edges: state.edges }],
+        future: [],
+      }
+    }),
+
+  addNodeToGroup: (nodeId, groupId) =>
+    set((state) => {
+      const group = state.nodes.find((n) => n.id === groupId && n.data.type === 'group')
+      const node = state.nodes.find((n) => n.id === nodeId)
+      if (!group || !node) return state
+      if (node.id === groupId || node.parentId === groupId) return state
+      if (node.data.type === 'group' || node.data.type === 'groupRect') return state
+
+      let absX = node.position.x
+      let absY = node.position.y
+      if (node.parentId) {
+        const parent = state.nodes.find((n) => n.id === node.parentId)
+        if (parent) {
+          absX += parent.position.x
+          absY += parent.position.y
+        }
+      }
+
+      const updatedNodes = state.nodes.map((n) => {
+        if (n.id !== nodeId) return n
+        return {
+          ...n,
+          parentId: groupId,
+          extent: 'parent' as const,
+          position: {
+            x: Math.max(10, absX - group.position.x),
+            y: Math.max(10, absY - group.position.y),
+          },
+          selected: false,
+          data: { ...n.data, parent_id: groupId },
+        }
+      })
+
+      const parents = updatedNodes.filter((n) => !n.parentId)
+      const children = updatedNodes.filter((n) => !!n.parentId)
+
+      return {
+        nodes: [...parents, ...children],
         hasUnsavedChanges: true,
         past: [...state.past.slice(-49), { nodes: state.nodes, edges: state.edges }],
         future: [],

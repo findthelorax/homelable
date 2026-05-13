@@ -81,25 +81,27 @@ export function GroupNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
               }}
               style={{
                 flex: 1,
+                minWidth: 0,
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
                 color: '#e6edf3',
                 fontSize: 11,
                 fontWeight: 600,
+                textAlign: 'left',
               }}
             />
           ) : (
-            <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#e6edf3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#e6edf3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {data.label}
             </span>
           )}
 
           {editing ? (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 4, flexShrink: 0 }}>
               <button className="nodrag" onClick={handleRename} style={{ color: '#39d353', background: 'none', border: 'none', cursor: 'pointer', padding: 1 }}><Check size={11} /></button>
               <button className="nodrag" onClick={() => { setLabelDraft(data.label); setEditing(false) }} style={{ color: '#f85149', background: 'none', border: 'none', cursor: 'pointer', padding: 1 }}><X size={11} /></button>
-            </>
+            </div>
           ) : (
             <button
               className="nodrag"
@@ -112,7 +114,7 @@ export function GroupNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
           )}
 
           {/* Status summary */}
-          {children.length > 0 && (
+          {!editing && children.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, flexShrink: 0, marginLeft: 4 }}>
               {onlineCount > 0 && <span style={{ color: STATUS_COLORS.online }}>● {onlineCount}</span>}
               {offlineCount > 0 && <span style={{ color: STATUS_COLORS.offline }}>● {offlineCount}</span>}

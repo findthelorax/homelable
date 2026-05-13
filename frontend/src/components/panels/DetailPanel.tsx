@@ -421,8 +421,23 @@ interface GroupDetailPanelProps {
 
 
 function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onSelectChild }: GroupDetailPanelProps) {
-  const { unlinkNodeFromGroup } = useCanvasStore()
+  const { unlinkNodeFromGroup, addNodeToGroup } = useCanvasStore()
+  const [candidateId, setCandidateId] = useState('')
   const children = nodes.filter((n) => n.parentId === node.id)
+  const addCandidates = nodes
+    .filter((n) =>
+      n.id !== node.id &&
+      !n.parentId &&
+      n.data.type !== 'group' &&
+      n.data.type !== 'groupRect'
+    )
+    .sort((a, b) => {
+      const labelA = (a.data.label ?? '').trim()
+      const labelB = (b.data.label ?? '').trim()
+      const byLabel = labelA.localeCompare(labelB, undefined, { sensitivity: 'base' })
+      if (byLabel !== 0) return byLabel
+      return a.id.localeCompare(b.id)
+    })
   const onlineCount = children.filter((n) => n.data.status === 'online').length
   const offlineCount = children.filter((n) => n.data.status === 'offline').length
   const showBorder = node.data.custom_colors?.show_border !== false
@@ -438,6 +453,12 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
     if (confirm('Remove this node from the group?')) {
       unlinkNodeFromGroup(childId)
     }
+  }
+
+  const handleAddExisting = () => {
+    if (!candidateId) return
+    addNodeToGroup(candidateId, node.id)
+    setCandidateId('')
   }
 
   return (
@@ -498,6 +519,32 @@ function GroupDetailPanel({ node, nodes, onUngroup, onToggleBorder, onClose, onS
 
       {/* Actions */}
       <div className="px-4 py-3 border-t border-border space-y-2">
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Add Existing Node</div>
+          <div className="flex gap-1.5">
+            <select
+              value={candidateId}
+              onChange={(e) => setCandidateId(e.target.value)}
+              className="flex-1 bg-[#21262d] border border-[#30363d] rounded-md text-xs h-7 px-1.5 text-foreground"
+            >
+              <option value="">Select node...</option>
+              {addCandidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.data.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-[10px] px-2.5 cursor-pointer"
+              onClick={handleAddExisting}
+              disabled={!candidateId}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
         <button
           onClick={onToggleBorder}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-[#21262d] transition-colors"

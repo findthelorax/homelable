@@ -38,6 +38,8 @@ const mockStore = {
   selectedNodeIds: [],
   setSelectedNode: vi.fn(),
   selectNode: vi.fn(),
+  addNodeToGroup: vi.fn(),
+  unlinkNodeFromGroup: vi.fn(),
   deleteNode: vi.fn(),
   updateNode: vi.fn(),
   snapshotHistory: vi.fn(),
@@ -230,5 +232,18 @@ describe('GroupDetailPanel', () => {
     renderPanel()
     fireEvent.click(screen.getByText('Child Node Alpha'))
     expect(selectNode).toHaveBeenCalledWith('c1')
+  })
+
+  it('calls addNodeToGroup when selecting an existing node to add', () => {
+    const addNodeToGroup = vi.fn()
+    const group = makeGroupNode()
+    const existing = makeNode('n1', { data: { label: 'Printer', type: 'printer', status: 'online', services: [] } })
+    setupStore({ nodes: [group, existing], selectedNodeId: 'g1', selectedNodeIds: ['g1'], addNodeToGroup })
+    renderPanel()
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'n1' } })
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }))
+
+    expect(addNodeToGroup).toHaveBeenCalledWith('n1', 'g1')
   })
 })

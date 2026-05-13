@@ -64,8 +64,8 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
     >
       <NodeResizer
         isVisible={selected}
-        minWidth={140}
-        minHeight={50}
+        minWidth={100}
+        minHeight={40}
         lineStyle={{ borderColor: 'transparent' }}
         handleStyle={{ borderColor: colors.border, background: colors.border, width: 16, height: 16 }}
       />
@@ -78,7 +78,7 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
       <Handle type="target" position={Position.Top} id="top-t" style={{ opacity: 0, width: 12, height: 12 }} />
 
       {/* Main row */}
-      <div className="flex flex-row items-center gap-2.5 px-2.5 py-2 min-w-0 overflow-hidden">
+      <div className="flex flex-row items-center gap-2.5 px-2.5 py-1.25 min-w-0 overflow-hidden shrink-0">
         {/* Icon */}
         <div
           className="flex items-center justify-center w-7 h-7 rounded-md shrink-0"
@@ -101,7 +101,7 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
               {data.label}
             </div>
             <div
-              className="w-1.5 h-1.5 rounded-full shrink-0 mt-0.5"
+              className="w-1.5 h-1.5 rounded-full shrink-0 ml-0.5 mt-0.5"
               style={{ backgroundColor: statusColor }}
               title={data.status}
             />
@@ -118,7 +118,6 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
           ))}
         </div>
       </div>
-
       {/* Properties section (new system) */}
       {visibleProperties && visibleProperties.length > 0 && (
         <>
@@ -127,7 +126,7 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
             {visibleProperties.map((prop) => {
               const Icon = resolvePropertyIcon(prop.icon)
               return (
-                <div key={prop.key} className="flex items-center gap-1 font-mono text-[10px] min-w-0 overflow-hidden" style={{ color: theme.colors.nodeSubtextColor }}>
+                <div key={prop.key} className="flex items-center gap-1 font-mono text-[10px] min-w-0 overflow-hidden shrink-0" style={{ color: theme.colors.nodeSubtextColor }}>
                   {Icon && <Icon size={9} className="shrink-0" />}
                   <span className="truncate max-w-15 shrink-0" title={prop.key}>{prop.key}</span>
                   <span className="truncate min-w-0" title={prop.value}>· {prop.value}</span>
@@ -137,6 +136,7 @@ export function BaseNode({ id, data, selected, icon: typeIcon, width, height }: 
           </div>
         </>
       )}
+
 
       {/* Legacy hardware section — fallback for nodes not yet migrated */}
       {showLegacyHardware && (

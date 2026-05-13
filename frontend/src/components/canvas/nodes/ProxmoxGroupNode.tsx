@@ -107,7 +107,7 @@ export function ProxmoxGroupNode(props: NodeProps<Node<NodeData>>) {
             ))}
           </div>
             <div
-              className="ml-1 mt-0.5 w-1.5 h-1.5 rounded-full shrink-0"
+              className="ml-1 mt-1 w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: statusColor }}
               title={data.status}
             />
